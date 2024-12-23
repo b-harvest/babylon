@@ -47,6 +47,7 @@ func voteToStep(vote *cmtproto.Vote) int8 {
 
 // WrappedFilePVKey wraps FilePVKey with BLS keys.
 type WrappedFilePVKey struct {
+	// TODO: DelegatorAddress could be removed
 	DelegatorAddress string              `json:"acc_address"`
 	Address          types.Address       `json:"address"`
 	PubKey           cmtcrypto.PubKey    `json:"pub_key"`
@@ -178,6 +179,7 @@ func (pv *WrappedFilePV) ExportGenBls(filePath string) (outputFileName string, e
 		return outputFileName, errors.New("export file path does not exist")
 	}
 
+	// TODO: get valAddress by argument on create-bls command
 	valAddress := pv.GetAddress()
 	if valAddress.Empty() {
 		return outputFileName, errors.New("validator address should not be empty")
@@ -210,6 +212,7 @@ func (pv *WrappedFilePV) ExportGenBls(filePath string) (outputFileName string, e
 
 // GetAddress returns the delegator address of the validator.
 // Implements PrivValidator.
+// TODO: Could be removed
 func (pv *WrappedFilePV) GetAddress() sdk.ValAddress {
 	if pv.Key.DelegatorAddress == "" {
 		return sdk.ValAddress{}
@@ -221,6 +224,7 @@ func (pv *WrappedFilePV) GetAddress() sdk.ValAddress {
 	return sdk.ValAddress(addr)
 }
 
+// TODO: could be removed
 func (pv *WrappedFilePV) SetAccAddress(addr sdk.AccAddress) {
 	pv.Key.DelegatorAddress = addr.String()
 	pv.Key.Save()

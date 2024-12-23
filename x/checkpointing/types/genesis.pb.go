@@ -71,6 +71,7 @@ func (m *GenesisState) GetGenesisKeys() []*GenesisKey {
 
 // GenesisKey defines public key information about the genesis validators
 type GenesisKey struct {
+	// TODO: consider ValidatorAddress  
 	// validator_address is the address corresponding to a validator
 	ValidatorAddress string `protobuf:"bytes,1,opt,name=validator_address,json=validatorAddress,proto3" json:"validator_address,omitempty"`
 	// bls_key defines the BLS key of the validator at genesis

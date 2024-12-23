@@ -53,9 +53,17 @@ func (h *VoteExtensionHandler) ExtendVote() sdk.ExtendVoteHandler {
 
 		// 1. check if itself is the validator as the BLS sig is only signed
 		// when the node itself is a validator
-		signer := k.GetBLSSignerAddress()
+
+		// Get Signer(ValOper) by GetValConsAddress
+		//signer := k.GetBLSSignerAddress()
+		valConsAddr := k.GetValConsAddress()
 		curValSet := k.GetValidatorSet(ctx, epoch.EpochNumber)
-		_, _, err := curValSet.FindValidatorWithIndex(signer)
+		val, err := k.GetValidatorByConsAddr(ctx, valConsAddr)
+		if err != nil {
+			panic(fmt.Errorf("the BLS signer's consensus address %s is not in the validator set", valConsAddr.String()))
+		}
+		signer, _ := sdk.ValAddressFromBech32(val.GetOperator())
+		_, _, err = curValSet.FindValidatorWithIndex(signer)
 		if err != nil {
 			// NOTE: this indicates programmatic error because ExtendVote
 			// should not be invoked if the validator is not in the
@@ -81,7 +89,7 @@ func (h *VoteExtensionHandler) ExtendVote() sdk.ExtendVoteHandler {
 		// 3. build vote extension
 		ve := &ckpttypes.VoteExtension{
 			Signer:           signer.String(),
-			ValidatorAddress: k.GetValidatorAddress().String(),
+			ValidatorAddress: signer.String(),
 			BlockHash:        &bhash,
 			EpochNum:         epoch.EpochNumber,
 			Height:           uint64(req.Height),
