@@ -194,7 +194,9 @@ func NewBabylonAppDriver(
 		panic(err)
 	}
 
-	signer, err := appsigner.InitPrivSigner(chain.Nodes[0].ConfigDir)
+	// wonjoon:
+	// todo:set password to parameter
+	signer, err := appsigner.InitPrivSigner(chain.Nodes[0].ConfigDir, "")
 	require.NoError(t, err)
 	require.NotNil(t, signer)
 	signerValAddress := signer.WrappedPV.GetAddress()
@@ -769,7 +771,9 @@ func NewBlockReplayer(t *testing.T, nodeDir string) *BlockReplayer {
 		panic(err)
 	}
 
-	signer, err := appsigner.InitPrivSigner(nodeDir)
+	// wonjoon
+	// todo: set password to parameter
+	signer, err := appsigner.InitPrivSigner(nodeDir, "")
 	require.NoError(t, err)
 	require.NotNil(t, signer)
 	signerValAddress := signer.WrappedPV.GetAddress()

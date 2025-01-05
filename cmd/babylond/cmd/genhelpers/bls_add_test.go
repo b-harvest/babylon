@@ -32,7 +32,6 @@ import (
 
 	"github.com/babylonlabs-io/babylon/app"
 	"github.com/babylonlabs-io/babylon/cmd/babylond/cmd/genhelpers"
-	"github.com/babylonlabs-io/babylon/privval"
 	"github.com/babylonlabs-io/babylon/testutil/cli"
 	"github.com/babylonlabs-io/babylon/testutil/datagen"
 	"github.com/babylonlabs-io/babylon/testutil/signer"
@@ -76,7 +75,8 @@ func Test_CmdCreateAddWithoutGentx(t *testing.T) {
 	require.NoError(t, err)
 
 	db := dbm.NewMemDB()
-	signer, err := signer.SetupTestPrivSigner()
+	// wonjoon: password is empty (since testing)
+	signer, err := signer.SetupTestPrivSigner("")
 	require.NoError(t, err)
 	bbn := app.NewBabylonAppWithCustomOptions(t, false, signer, app.SetupOptions{
 		Logger:             logger,
@@ -118,7 +118,9 @@ func Test_CmdCreateAddWithoutGentx(t *testing.T) {
 // error is expected if adding duplicate
 func Test_CmdAddBlsWithGentx(t *testing.T) {
 	db := dbm.NewMemDB()
-	signer, err := signer.SetupTestPrivSigner()
+
+	// wonjoon: password is empty (since testing)
+	signer, err := signer.SetupTestPrivSigner("")
 	require.NoError(t, err)
 	bbn := app.NewBabylonAppWithCustomOptions(t, false, signer, app.SetupOptions{
 		Logger:             log.NewNopLogger(),
@@ -152,8 +154,8 @@ func Test_CmdAddBlsWithGentx(t *testing.T) {
 		nodeCfg.SetRoot(homeDir)
 		keyPath := nodeCfg.PrivValidatorKeyFile()
 		statePath := nodeCfg.PrivValidatorStateFile()
-		filePV := privval.GenWrappedFilePV(keyPath, statePath)
-		filePV.SetAccAddress(v.Address)
+		// filePV := privval.GenWrappedFilePV(keyPath, statePath)
+		// filePV.SetAccAddress(v.Address)
 		_, err = cli.ExecTestCLICmd(v.ClientCtx, genBlsCmd, []string{fmt.Sprintf("--%s=%s", flags.FlagHome, homeDir)})
 		require.NoError(t, err)
 		genKeyFileName := filepath.Join(filepath.Dir(keyPath), fmt.Sprintf("gen-bls-%s.json", v.ValAddress))
@@ -175,6 +177,6 @@ func Test_CmdAddBlsWithGentx(t *testing.T) {
 		require.NotEmpty(t, checkpointingGenState.GenesisKeys)
 		gks := checkpointingGenState.GetGenesisKeys()
 		require.Equal(t, genKey, gks[i])
-		filePV.Clean(keyPath, statePath)
+		Clean(keyPath, statePath)
 	}
 }

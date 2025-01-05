@@ -23,7 +23,7 @@ func FuzzSlashedValSet(f *testing.F) {
 		var err error
 
 		// generate the validator set with 10 validators as genesis
-		genesisValSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(10)
+		genesisValSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(10, "")
 		require.NoError(t, err)
 		helper := testhelper.NewHelperWithValSet(t, genesisValSet, privSigner)
 		ctx, keeper, stakingKeeper := helper.Ctx, helper.App.EpochingKeeper, helper.App.StakingKeeper

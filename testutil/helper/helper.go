@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"cosmossdk.io/core/header"
+	"github.com/babylonlabs-io/babylon/app"
 	"github.com/babylonlabs-io/babylon/app/signer"
 	"github.com/babylonlabs-io/babylon/crypto/bls12381"
 	"github.com/babylonlabs-io/babylon/testutil/datagen"
@@ -26,7 +27,6 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	"github.com/babylonlabs-io/babylon/app"
 	appparams "github.com/babylonlabs-io/babylon/app/params"
 	bbn "github.com/babylonlabs-io/babylon/types"
 	btcstakingtypes "github.com/babylonlabs-io/babylon/x/btcstaking/types"
@@ -49,7 +49,8 @@ type Helper struct {
 
 // NewHelper creates the helper for testing the epoching module
 func NewHelper(t *testing.T) *Helper {
-	valSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(1)
+	// wonjoon: password is empty -> should be configurable?
+	valSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(1, "")
 	require.NoError(t, err)
 
 	return NewHelperWithValSet(t, valSet, privSigner)
@@ -59,10 +60,10 @@ func NewHelper(t *testing.T) *Helper {
 // the privSigner is the 0th validator in valSet
 func NewHelperWithValSet(t *testing.T, valSet *datagen.GenesisValidators, privSigner *signer.PrivSigner) *Helper {
 	// generate the genesis account
-	signerPubKey := privSigner.WrappedPV.Key.PubKey
+	signerPubKey := privSigner.WrappedPV.Keys.CometPvKey.PubKey // wonjoon: adjust refactoring function
 	acc := authtypes.NewBaseAccount(signerPubKey.Address().Bytes(), &cosmosed.PubKey{Key: signerPubKey.Bytes()}, 0, 0)
-	privSigner.WrappedPV.Key.DelegatorAddress = acc.Address
-	valSet.Keys[0].ValidatorAddress = privSigner.WrappedPV.GetAddress().String()
+	// privSigner.WrappedPV.Keys.DelegatorAddress = acc.Address // wonjoon: removed delegator address
+	valSet.Keys[0].GenesisKey.ValidatorAddress = privSigner.WrappedPV.GetAddress().String()
 	// ensure the genesis account has a sufficient amount of tokens
 	balance := banktypes.Balance{
 		Address: acc.GetAddress().String(),
@@ -97,11 +98,11 @@ func NewHelperWithValSet(t *testing.T, valSet *datagen.GenesisValidators, privSi
 // included in the validator set
 func NewHelperWithValSetNoSigner(t *testing.T, valSet *datagen.GenesisValidators, privSigner *signer.PrivSigner) *Helper {
 	// generate the genesis account
-	signerPubKey := privSigner.WrappedPV.Key.PubKey
+	signerPubKey := privSigner.WrappedPV.Keys.CometPvKey.PubKey
 	acc := authtypes.NewBaseAccount(signerPubKey.Address().Bytes(), &cosmosed.PubKey{Key: signerPubKey.Bytes()}, 0, 0)
-	privSigner.WrappedPV.Key.DelegatorAddress = acc.Address
+	// privSigner.WrappedPV.Key.DelegatorAddress = acc.Address
 	// set a random validator address instead of the privSigner's
-	valSet.Keys[0].ValidatorAddress = datagen.GenRandomValidatorAddress().String()
+	valSet.Keys[0].GenesisKey.ValidatorAddress = datagen.GenRandomValidatorAddress().String()
 	// ensure the genesis account has a sufficient amount of tokens
 	balance := banktypes.Balance{
 		Address: acc.GetAddress().String(),

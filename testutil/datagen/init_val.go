@@ -5,56 +5,61 @@ import (
 	"path/filepath"
 
 	cfg "github.com/cometbft/cometbft/config"
+	cmtcrypto "github.com/cometbft/cometbft/crypto"
 	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
 	cmtos "github.com/cometbft/cometbft/libs/os"
 	"github.com/cometbft/cometbft/p2p"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/go-bip39"
 
-	"github.com/babylonlabs-io/babylon/crypto/bls12381"
 	"github.com/babylonlabs-io/babylon/privval"
+	cometbftprivval "github.com/cometbft/cometbft/privval"
 )
 
 // InitializeNodeValidatorFiles creates private validator and p2p configuration files.
-func InitializeNodeValidatorFiles(config *cfg.Config, addr sdk.AccAddress) (string, *privval.ValidatorKeys, error) {
-	return InitializeNodeValidatorFilesFromMnemonic(config, "", addr)
+// wonjoon: why it is needed? unnescessary function since we can configure mnemonic address to "" if no mnemonic is provided
+func InitializeNodeValidatorFiles(cometCfg *cfg.Config, addr sdk.AccAddress) (string, *privval.ValidatorKeys, error) {
+	// todo: modify mnemonic, password for bls
+	return InitializeNodeValidatorFilesFromMnemonic(cometCfg, privval.BlsConfig{}, "", "", addr)
 }
 
-func InitializeNodeValidatorFilesFromMnemonic(config *cfg.Config, mnemonic string, addr sdk.AccAddress) (nodeID string, valKeys *privval.ValidatorKeys, err error) {
+func InitializeNodeValidatorFilesFromMnemonic(cometCfg *cfg.Config, blsCfg privval.BlsConfig, mnemonic, password string, addr sdk.AccAddress) (nodeID string, valKeys *privval.ValidatorKeys, err error) {
 	if len(mnemonic) > 0 && !bip39.IsMnemonicValid(mnemonic) {
 		return "", nil, fmt.Errorf("invalid mnemonic")
 	}
 
-	nodeKey, err := p2p.LoadOrGenNodeKey(config.NodeKeyFile())
+	// wonjoon: comet configuration
+	nodeKey, err := p2p.LoadOrGenNodeKey(cometCfg.NodeKeyFile())
 	if err != nil {
 		return "", nil, err
 	}
 
 	nodeID = string(nodeKey.ID())
 
-	pvKeyFile := config.PrivValidatorKeyFile()
+	pvKeyFile := cometCfg.PrivValidatorKeyFile()
 	if err := cmtos.EnsureDir(filepath.Dir(pvKeyFile), 0777); err != nil {
 		return "", nil, err
 	}
 
-	pvStateFile := config.PrivValidatorStateFile()
+	pvStateFile := cometCfg.PrivValidatorStateFile()
 	if err := cmtos.EnsureDir(filepath.Dir(pvStateFile), 0777); err != nil {
 		return "", nil, err
 	}
 
-	var filePV *privval.WrappedFilePV
+	var cometPvPrivKey cmtcrypto.PrivKey
 	if len(mnemonic) == 0 {
-		filePV = privval.LoadOrGenWrappedFilePV(pvKeyFile, pvStateFile)
+		cometPvPrivKey = cmted25519.GenPrivKey()
 	} else {
-		privKey := cmted25519.GenPrivKeyFromSecret([]byte(mnemonic))
-		blsPrivKey := bls12381.GenPrivKeyFromSecret([]byte(mnemonic))
-		filePV = privval.NewWrappedFilePV(privKey, blsPrivKey, pvKeyFile, pvStateFile)
+		cometPvPrivKey = cmted25519.GenPrivKeyFromSecret([]byte(mnemonic))
 	}
-	filePV.SetAccAddress(addr)
+	cometPv := cometbftprivval.NewFilePV(cometPvPrivKey, pvKeyFile, pvStateFile)
 
-	valPrivkey := filePV.GetValPrivKey()
-	blsPrivkey := filePV.GetBlsPrivKey()
-	valKeys, err = privval.NewValidatorKeys(valPrivkey, blsPrivkey)
+	// wonjoon: bls configuration
+	blsKeyFile := blsCfg.BlsKeyFile()
+	// wonjoon: GenBlsPV -> NewBlsPv already checks if mnemonic is empty
+	blsPv := privval.GenBlsPV(mnemonic, blsKeyFile, password)
+
+	valKeys, err = privval.NewValidatorKeys(cometPv.Key.PrivKey, blsPv.Key.GetPrivKey())
 	if err != nil {
 		return "", nil, err
 	}

@@ -34,9 +34,9 @@ import (
 	babylonApp "github.com/babylonlabs-io/babylon/app"
 	appparams "github.com/babylonlabs-io/babylon/app/params"
 	"github.com/babylonlabs-io/babylon/cmd/babylond/cmd"
-	"github.com/babylonlabs-io/babylon/crypto/bls12381"
 	"github.com/babylonlabs-io/babylon/privval"
 	"github.com/babylonlabs-io/babylon/test/e2e/util"
+	cometbftprivval "github.com/cometbft/cometbft/privval"
 )
 
 type internalNode struct {
@@ -90,7 +90,7 @@ func (n *internalNode) buildCreateValidatorMsg(amount sdk.Coin) (sdk.Msg, error)
 	// get the initial validator min self delegation
 	minSelfDelegation, _ := math.NewIntFromString("1")
 
-	valPubKey, err := cryptocodec.FromCmtPubKeyInterface(n.consensusKey.PubKey)
+	valPubKey, err := cryptocodec.FromCmtPubKeyInterface(n.consensusKey.CometPvKey.PubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -163,26 +163,37 @@ func (n *internalNode) createConsensusKey() error {
 	config.SetRoot(n.configDir())
 	config.Moniker = n.moniker
 
-	pvKeyFile := config.PrivValidatorKeyFile()
-	if err := cmtos.EnsureDir(filepath.Dir(pvKeyFile), 0o777); err != nil {
+	// wonjoon: refactoring logic to get comet pv
+	cometPvKeyFile := config.PrivValidatorKeyFile()
+	if err := cmtos.EnsureDir(filepath.Dir(cometPvKeyFile), 0o777); err != nil {
 		return err
 	}
 
-	pvStateFile := config.PrivValidatorStateFile()
-	if err := cmtos.EnsureDir(filepath.Dir(pvStateFile), 0o777); err != nil {
+	cometPvStateFile := config.PrivValidatorStateFile()
+	if err := cmtos.EnsureDir(filepath.Dir(cometPvStateFile), 0o777); err != nil {
 		return err
 	}
 
-	privKey := cmted25519.GenPrivKeyFromSecret([]byte(n.mnemonic))
-	blsPrivKey := bls12381.GenPrivKeyFromSecret([]byte(n.mnemonic))
-	filePV := privval.NewWrappedFilePV(privKey, blsPrivKey, pvKeyFile, pvStateFile)
+	cometPrivKey := cmted25519.GenPrivKeyFromSecret([]byte(n.mnemonic))
+	cometPv := cometbftprivval.NewFilePV(cometPrivKey, cometPvKeyFile, cometPvStateFile)
 
-	accAddress, _ := n.keyInfo.GetAddress()
-	filePV.Save()
-	filePV.SetAccAddress(accAddress)
+	// wonjoon: refactoring logic to get bls pv
+	// todo: set bls config is configurable
+	// todo: set password from outside
+	blsCfg := privval.DefaultBlsConfig()
+	blsPvKeyFile := blsCfg.BlsKeyFile()
+	if err := cmtos.EnsureDir(filepath.Dir(blsPvKeyFile), 0o777); err != nil {
+		return err
+	}
+	blsPv := privval.NewBlsPV(n.mnemonic, blsPvKeyFile, "")
 
-	n.consensusKey = filePV.Key
+	wrappedFilePv := privval.NewWrappedFilePV(
+		cometPv.Key,
+		cometPv.LastSignState,
+		blsPv.Key,
+	)
 
+	n.consensusKey = wrappedFilePv.Keys
 	return nil
 }
 

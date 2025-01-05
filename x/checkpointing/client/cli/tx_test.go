@@ -31,6 +31,9 @@ import (
 	"github.com/babylonlabs-io/babylon/privval"
 	testutilcli "github.com/babylonlabs-io/babylon/testutil/cli"
 	checkpointcli "github.com/babylonlabs-io/babylon/x/checkpointing/client/cli"
+
+	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
+	cometbftprivval "github.com/cometbft/cometbft/privval"
 )
 
 type mockCometRPC struct {
@@ -103,14 +106,52 @@ func (s *CLITestSuite) SetupSuite() {
 func (s *CLITestSuite) TestCmdWrappedCreateValidator() {
 	require := s.Require()
 	homeDir := s.T().TempDir()
-	nodeCfg := cmtconfig.DefaultConfig()
-	pvKeyFile := filepath.Join(homeDir, nodeCfg.PrivValidatorKeyFile())
-	err := cmtos.EnsureDir(filepath.Dir(pvKeyFile), 0777)
+
+	// wonjoon: fix to reflect refactored function
+	wrappedPV, err := func(homedir string) (*privval.WrappedFilePV, error) {
+
+		// cometPv
+		cometCfg := cmtconfig.DefaultConfig()
+
+		pvKeyFile := filepath.Join(homeDir, cometCfg.PrivValidatorKeyFile())
+		if err := cmtos.EnsureDir(filepath.Dir(pvKeyFile), 0777); err != nil {
+			return nil, err
+		}
+
+		pvStateFile := filepath.Join(homeDir, cometCfg.PrivValidatorStateFile())
+		if err := cmtos.EnsureDir(filepath.Dir(pvStateFile), 0777); err != nil {
+			return nil, err
+		}
+
+		cometPv := cometbftprivval.NewFilePV(
+			cmted25519.GenPrivKey(),
+			pvKeyFile,
+			pvStateFile,
+		)
+
+		// blsPv
+		blsCfg := privval.DefaultBlsConfig()
+
+		blsKeyFile := blsCfg.BlsKeyFile()
+		if err := cmtos.EnsureDir(filepath.Dir(blsKeyFile), 0777); err != nil {
+			return nil, err
+		}
+
+		blsPv := privval.NewBlsPV(
+			"",
+			blsKeyFile,
+			blsCfg.Password,
+		)
+
+		return privval.NewWrappedFilePV(
+			cometPv.Key,
+			cometPv.LastSignState,
+			blsPv.Key,
+		), nil
+
+	}(homeDir)
 	require.NoError(err)
-	pvStateFile := filepath.Join(homeDir, nodeCfg.PrivValidatorStateFile())
-	err = cmtos.EnsureDir(filepath.Dir(pvStateFile), 0777)
-	require.NoError(err)
-	wrappedPV := privval.LoadOrGenWrappedFilePV(pvKeyFile, pvStateFile)
+
 	cmd := checkpointcli.CmdWrappedCreateValidator(authcodec.NewBech32Codec("cosmosvaloper"))
 
 	consPrivKey := wrappedPV.GetValPrivKey()

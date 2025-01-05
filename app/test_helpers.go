@@ -237,16 +237,15 @@ func Setup(t *testing.T, isCheckTx bool) *BabylonApp {
 func SetupWithBitcoinConf(t *testing.T, isCheckTx bool, btcConf bbn.SupportedBtcNetwork) *BabylonApp {
 	t.Helper()
 
-	ps, err := signer.SetupTestPrivSigner()
+	ps, err := signer.SetupTestPrivSigner("")
 	require.NoError(t, err)
-	valPubKey := ps.WrappedPV.Key.PubKey
+	valPubKey := ps.WrappedPV.Keys.CometPvKey.PubKey
 	// generate genesis account
 	acc := authtypes.NewBaseAccount(valPubKey.Address().Bytes(), &cosmosed.PubKey{Key: valPubKey.Bytes()}, 0, 0)
 	balance := banktypes.Balance{
 		Address: acc.GetAddress().String(),
 		Coins:   sdk.NewCoins(sdk.NewCoin(appparams.DefaultBondDenom, math.NewInt(100000000000000))),
 	}
-	ps.WrappedPV.Key.DelegatorAddress = acc.GetAddress().String()
 	// create validator set with single validator
 	genesisKey, err := signer.GenesisKeyFromPrivSigner(ps)
 	require.NoError(t, err)

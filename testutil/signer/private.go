@@ -12,7 +12,8 @@ import (
 )
 
 // SetupTestPrivSigner sets up a PrivSigner for testing
-func SetupTestPrivSigner() (*signer.PrivSigner, error) {
+// wonjoon: add password parameter
+func SetupTestPrivSigner(password string) (*signer.PrivSigner, error) {
 	// Create a temporary node directory
 	nodeDir, err := os.MkdirTemp("", "tmp-signer")
 	if err != nil {
@@ -21,12 +22,16 @@ func SetupTestPrivSigner() (*signer.PrivSigner, error) {
 	defer func() {
 		_ = os.RemoveAll(nodeDir)
 	}()
-	privSigner, _ := signer.InitPrivSigner(nodeDir)
+	privSigner, _ := signer.InitPrivSigner(nodeDir, password)
 	return privSigner, nil
 }
 
 func GenesisKeyFromPrivSigner(ps *signer.PrivSigner) (*checkpointingtypes.GenesisKey, error) {
-	valKeys, err := privval.NewValidatorKeys(ps.WrappedPV.GetValPrivKey(), ps.WrappedPV.GetBlsPrivKey())
+	// wonjoon: refactoring
+	valKeys, err := privval.NewValidatorKeys(
+		ps.WrappedPV.Keys.CometPvKey.PrivKey,
+		ps.WrappedPV.Keys.BlsPvKey.GetPrivKey(),
+	)
 	if err != nil {
 		return nil, err
 	}

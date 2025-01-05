@@ -68,7 +68,7 @@ func FuzzHandleQueuedMsg_MsgWrappedDelegate(f *testing.F) {
 		r := rand.New(rand.NewSource(seed))
 
 		// generate the validator set with 10 validators as genesis
-		genesisValSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(10)
+		genesisValSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(10, "")
 		require.NoError(t, err)
 		helper := testhelper.NewHelperWithValSet(t, genesisValSet, privSigner)
 		ctx, keeper, genAccs := helper.Ctx, helper.App.EpochingKeeper, helper.GenAccs
@@ -132,7 +132,7 @@ func FuzzHandleQueuedMsg_MsgWrappedUndelegate(f *testing.F) {
 		r := rand.New(rand.NewSource(seed))
 
 		// generate the validator set with 10 validators as genesis
-		genesisValSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(10)
+		genesisValSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(10, "")
 		require.NoError(t, err)
 		helper := testhelper.NewHelperWithValSet(t, genesisValSet, privSigner)
 		ctx, keeper, genAccs := helper.Ctx, helper.App.EpochingKeeper, helper.GenAccs
@@ -207,7 +207,7 @@ func FuzzHandleQueuedMsg_MsgWrappedBeginRedelegate(f *testing.F) {
 		r := rand.New(rand.NewSource(seed))
 
 		// generate the validator set with 10 validators as genesis
-		genesisValSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(10)
+		genesisValSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(10, "")
 		require.NoError(t, err)
 		helper := testhelper.NewHelperWithValSet(t, genesisValSet, privSigner)
 		ctx, keeper, genAccs := helper.Ctx, helper.App.EpochingKeeper, helper.GenAccs

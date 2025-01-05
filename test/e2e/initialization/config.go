@@ -404,30 +404,36 @@ func updateCheckpointingGenesis(c *internalChain) func(*checkpointingtypes.Genes
 				continue
 			}
 
-			proofOfPossession, err := privval.BuildPoP(node.consensusKey.PrivKey, node.consensusKey.BlsPrivKey)
+			// wonjoon: to use GetAddress for getting delegator address
+			wrappedFilePv := privval.WrappedFilePV{
+				Keys: node.consensusKey,
+			}
 
+			proofOfPossession, err := privval.BuildPoP(
+				wrappedFilePv.Keys.CometPvKey.PrivKey,
+				wrappedFilePv.Keys.BlsPvKey.GetPrivKey(),
+			)
 			if err != nil {
 				panic("It should be possible to build proof of possession from validator private keys")
 			}
 
-			valPubKey, err := cryptocodec.FromCmtPubKeyInterface(node.consensusKey.PubKey)
-
+			valPubKey, err := cryptocodec.FromCmtPubKeyInterface(
+				wrappedFilePv.Keys.CometPvKey.PubKey,
+			)
 			if err != nil {
 				panic("It should be possible to retrieve validator public key")
 			}
 
-			da, err := sdk.AccAddressFromBech32(node.consensusKey.DelegatorAddress)
+			validatorAddress := wrappedFilePv.GetAddress()
 
-			if err != nil {
-				panic("It should be possible to get validator address from delegator address")
-			}
-
-			va := sdk.ValAddress(da)
+			// blsPv := &(wrappedFilePv.Keys.BlsPvKey)
+			blsPubKey := wrappedFilePv.Keys.BlsPvKey.GetPubKey()
 
 			genKey := &checkpointingtypes.GenesisKey{
-				ValidatorAddress: va.String(),
+				ValidatorAddress: validatorAddress.String(),
+				// wonjoon: modify to reflect changed function
 				BlsKey: &checkpointingtypes.BlsKey{
-					Pubkey: &node.consensusKey.BlsPubKey,
+					Pubkey: &blsPubKey,
 					Pop:    proofOfPossession,
 				},
 				ValPubkey: valPubKey.(*ed25519.PubKey),

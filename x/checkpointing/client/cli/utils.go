@@ -25,6 +25,7 @@ import (
 
 	"github.com/babylonlabs-io/babylon/privval"
 	"github.com/babylonlabs-io/babylon/x/checkpointing/types"
+	cometbftprivval "github.com/cometbft/cometbft/privval"
 )
 
 // validator struct to define the fields of the validator
@@ -202,14 +203,25 @@ func buildCommissionRates(rateStr, maxRateStr, maxChangeRateStr string) (commiss
 	return commission, nil
 }
 
+// wonjoon
+// todo: always default config? -> should be configurable
 func getValKeyFromFile(homeDir string) (*privval.ValidatorKeys, error) {
-	nodeCfg := cmtconfig.DefaultConfig()
-	keyPath := filepath.Join(homeDir, nodeCfg.PrivValidatorKeyFile())
-	statePath := filepath.Join(homeDir, nodeCfg.PrivValidatorStateFile())
-	if !cmtos.FileExists(keyPath) {
-		return nil, errors.New("validator key file does not exist")
+	// comet
+	cometCfg := cmtconfig.DefaultConfig()
+	cometKeyPath := filepath.Join(homeDir, cometCfg.PrivValidatorKeyFile())
+	cometStatePath := filepath.Join(homeDir, cometCfg.PrivValidatorStateFile())
+	if !cmtos.FileExists(cometKeyPath) {
+		return nil, errors.New("validator comet pv key file does not exist")
 	}
-	wrappedPV := privval.LoadWrappedFilePV(keyPath, statePath)
+	cometPv := cometbftprivval.LoadFilePV(cometKeyPath, cometStatePath)
 
-	return privval.NewValidatorKeys(wrappedPV.GetValPrivKey(), wrappedPV.GetBlsPrivKey())
+	// bls
+	blsCfg := privval.DefaultBlsConfig()
+	blsKeyPath := filepath.Join(homeDir, blsCfg.BlsKeyFile())
+	if !cmtos.FileExists(blsKeyPath) {
+		return nil, errors.New("validator bls key file does not exist")
+	}
+	blsPv := privval.LoadBlsPV(blsKeyPath, blsCfg.Password)
+
+	return privval.NewValidatorKeys(cometPv.Key.PrivKey, blsPv.Key.GetPrivKey())
 }

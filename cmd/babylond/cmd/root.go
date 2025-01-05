@@ -263,7 +263,8 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, appOpts serverty
 	}
 
 	homeDir := cast.ToString(appOpts.Get(flags.FlagHome))
-	privSigner, err := signer.InitPrivSigner(homeDir)
+	// todo: set password to parameter
+	privSigner, err := signer.InitPrivSigner(homeDir, "")
 	if err != nil {
 		panic(err)
 	}
@@ -301,7 +302,8 @@ func appExport(
 		return servertypes.ExportedApp{}, errors.New("application home not set")
 	}
 
-	privSigner, err := signer.InitPrivSigner(homePath)
+	// wonjoon: set password to parameter
+	privSigner, err := signer.InitPrivSigner(homePath, "")
 	if err != nil {
 		panic(err)
 	}

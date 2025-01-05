@@ -20,7 +20,8 @@ func FuzzAddBLSSigVoteExtension_MultipleVals(f *testing.F) {
 	f.Fuzz(func(t *testing.T, seed int64) {
 		r := rand.New(rand.NewSource(seed))
 		// generate the validator set with 10 validators as genesis
-		genesisValSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(10)
+
+		genesisValSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(10, "")
 		require.NoError(t, err)
 		helper := testhelper.NewHelperWithValSet(t, genesisValSet, privSigner)
 		ek := helper.App.EpochingKeeper
@@ -53,7 +54,7 @@ func FuzzAddBLSSigVoteExtension_InsufficientVotingPower(f *testing.F) {
 	f.Fuzz(func(t *testing.T, seed int64) {
 		r := rand.New(rand.NewSource(seed))
 		// generate the validator set with 10 validators as genesis
-		genesisValSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(10)
+		genesisValSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(10, "")
 		require.NoError(t, err)
 		helper := testhelper.NewHelperWithValSet(t, genesisValSet, privSigner)
 		ek := helper.App.EpochingKeeper
@@ -109,7 +110,7 @@ func FuzzAddBLSSigVoteExtension_SomeInvalidVoteExtensions(f *testing.F) {
 	f.Fuzz(func(t *testing.T, seed int64) {
 		r := rand.New(rand.NewSource(seed))
 		// generate the validator set with 10 validators as genesis
-		genesisValSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(10)
+		genesisValSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(10, "")
 		require.NoError(t, err)
 		helper := testhelper.NewHelperWithValSet(t, genesisValSet, privSigner)
 		ek := helper.App.EpochingKeeper
@@ -145,7 +146,7 @@ func FuzzExtendVote_InvalidBlockHash(f *testing.F) {
 	f.Fuzz(func(t *testing.T, seed int64) {
 		r := rand.New(rand.NewSource(seed))
 		// generate the validator set with 10 validators as genesis
-		genesisValSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(10)
+		genesisValSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(10, "")
 		require.NoError(t, err)
 		helper := testhelper.NewHelperWithValSet(t, genesisValSet, privSigner)
 		ek := helper.App.EpochingKeeper
@@ -184,11 +185,14 @@ func FuzzExtendVote_EmptyBLSPrivKey(f *testing.F) {
 	f.Fuzz(func(t *testing.T, seed int64) {
 		r := rand.New(rand.NewSource(seed))
 		// generate the validator set with 10 validators as genesis
-		genesisValSet, ps, err := datagen.GenesisValidatorSetWithPrivSigner(10)
+		genesisValSet, ps, err := datagen.GenesisValidatorSetWithPrivSigner(10, "")
 		require.NoError(t, err)
 
 		// set the BLS private key to be nil to trigger panic
-		ps.WrappedPV.Key.BlsPrivKey = nil
+		// ps.WrappedPV.Keys.BlsPvKey.GetPrivKey() = nil
+
+		// wonjoon: make mock structure to test
+
 		helper := testhelper.NewHelperWithValSet(t, genesisValSet, ps)
 		ek := helper.App.EpochingKeeper
 
@@ -221,7 +225,7 @@ func FuzzExtendVote_NotInValidatorSet(f *testing.F) {
 	f.Fuzz(func(t *testing.T, seed int64) {
 		r := rand.New(rand.NewSource(seed))
 		// generate the validator set with 10 validators as genesis
-		genesisValSet, ps, err := datagen.GenesisValidatorSetWithPrivSigner(10)
+		genesisValSet, ps, err := datagen.GenesisValidatorSetWithPrivSigner(10, "")
 		require.NoError(t, err)
 
 		// the private signer is not included in the validator set

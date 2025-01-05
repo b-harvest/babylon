@@ -35,10 +35,10 @@ import (
 	"github.com/spf13/cobra"
 
 	appkeepers "github.com/babylonlabs-io/babylon/app/keepers"
+	"github.com/babylonlabs-io/babylon/testutil/datagen"
 
 	appparams "github.com/babylonlabs-io/babylon/app/params"
 	"github.com/babylonlabs-io/babylon/privval"
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
 	bbn "github.com/babylonlabs-io/babylon/types"
 	checkpointingtypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
 )
@@ -52,6 +52,7 @@ var (
 	flagBtcNetwork              = "btc-network"
 	flagAdditionalSenderAccount = "additional-sender-account"
 	flagTimeBetweenBlocks       = "time-between-blocks-seconds"
+	flagBlsPassword             = "bls-password" // wonjoon: add password for bls
 )
 
 // TestnetCmd initializes all files for tendermint testnet and application
@@ -91,6 +92,7 @@ Example:
 			btcNetwork, _ := cmd.Flags().GetString(flagBtcNetwork)
 			additionalAccount, _ := cmd.Flags().GetBool(flagAdditionalSenderAccount)
 			timeBetweenBlocks, _ := cmd.Flags().GetUint64(flagTimeBetweenBlocks)
+			blsPassword, _ := cmd.Flags().GetString(flagBlsPassword) // wonjoon: add password for bls
 
 			genesisParams := TestnetGenesisParams(
 				genesisCliArgs.MaxActiveValidators,
@@ -132,7 +134,7 @@ Example:
 			return InitTestnet(
 				clientCtx, cmd, config, mbm, genBalIterator, outputDir, genesisCliArgs.ChainID, minGasPrices,
 				nodeDirPrefix, nodeDaemonHome, startingIPAddress, keyringBackend, algo, numValidators,
-				btcNetwork, additionalAccount, timeBetweenBlocks,
+				btcNetwork, additionalAccount, timeBetweenBlocks, blsPassword, // wonjoon: add password for bls
 				clientCtx.TxConfig.SigningContext().ValidatorAddressCodec(), genesisParams,
 			)
 		},
@@ -149,6 +151,7 @@ Example:
 	cmd.Flags().String(flagBtcNetwork, string(bbn.BtcSimnet), "Bitcoin network to use. Available networks: simnet, testnet, regtest, mainnet")
 	cmd.Flags().Bool(flagAdditionalSenderAccount, false, "If there should be additional pre funded account per validator")
 	cmd.Flags().Uint64(flagTimeBetweenBlocks, 5, "Time between blocks in seconds")
+	cmd.Flags().String(flagBlsPassword, "", "Password for BLS key generation") // wonjoon: add password for bls
 	addGenesisFlags(cmd)
 
 	return cmd
@@ -175,6 +178,7 @@ func InitTestnet(
 	btcNetwork string,
 	additionalAccount bool,
 	timeBetweenBlocks uint64,
+	blsPassword string, // wonjoon: add password for bls
 	valAddrCodec runtime.ValidatorAddressCodec,
 	genesisParams GenesisParams,
 ) error {
@@ -241,10 +245,18 @@ func InitTestnet(
 			return err
 		}
 
+		// wonjoon: generate validator keys from cometbft
+		// todo: mnemonic can be configured
+		nodeIDs[i], _, err = genutil.InitializeNodeValidatorFiles(nodeConfig)
+		if err != nil {
+			_ = os.RemoveAll(outputDir)
+			return err
+		}
+
 		// generate account key
 		kb, err := keyring.New(sdk.KeyringServiceName(), keyringBackend, nodeDir, inBuf, clientCtx.Codec)
-
 		if err != nil {
+			_ = os.RemoveAll(outputDir)
 			return err
 		}
 		keyringAlgos, _ := kb.SupportedAlgorithms()
@@ -259,11 +271,13 @@ func InitTestnet(
 		}
 
 		// generate validator keys
+		// wonjoon: modify only create cometbft validator keys
+		// nodeIDs[i], valKeys[i], err = genutil.InitializeNodeValidatorFiles(nodeConfig, addr)
 		nodeIDs[i], valKeys[i], err = datagen.InitializeNodeValidatorFiles(nodeConfig, addr)
-		if err != nil {
-			_ = os.RemoveAll(outputDir)
-			return err
-		}
+		// if err != nil {
+		// 	_ = os.RemoveAll(outputDir)
+		// 	return err
+		// }
 
 		memo := fmt.Sprintf("%s@%s:26656", nodeIDs[i], ip)
 		genFiles = append(genFiles, nodeConfig.GenesisFile())

@@ -27,7 +27,8 @@ func Test_TestnetCmd(t *testing.T) {
 	cfg, err := genutiltest.CreateDefaultCometConfig(home)
 	require.NoError(t, err)
 
-	signer, err := signer.SetupTestPrivSigner()
+	// wonjoon: password is empty (since testing)
+	signer, err := signer.SetupTestPrivSigner("")
 	require.NoError(t, err)
 	bbn := app.NewBabylonAppWithCustomOptions(t, false, signer, app.SetupOptions{
 		Logger:             logger,

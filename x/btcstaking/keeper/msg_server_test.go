@@ -1350,7 +1350,7 @@ func FuzzDeterminismBtcstakingBeginBlocker(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, seed int64) {
 		r := rand.New(rand.NewSource(seed))
-		valSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(2)
+		valSet, privSigner, err := datagen.GenesisValidatorSetWithPrivSigner(2, "")
 		require.NoError(t, err)
 
 		var expectedProviderData = make(map[string]*ExpectedProviderData)

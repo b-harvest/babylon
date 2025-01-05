@@ -54,7 +54,7 @@ func (v *TestValidator) EpochingValidator() et.Validator {
 func (v *TestValidator) ProtoPubkey() cmtprotocrypto.PublicKey {
 	validatorPubKey := cmtprotocrypto.PublicKey{
 		Sum: &cmtprotocrypto.PublicKey_Ed25519{
-			Ed25519: v.Keys.PrivKey.PubKey().Bytes(),
+			Ed25519: v.Keys.CometPrivKey.PubKey().Bytes(),
 		},
 	}
 	return validatorPubKey
@@ -66,10 +66,10 @@ func (v *TestValidator) VoteExtension(
 ) checkpointingtypes.VoteExtension {
 	signBytes := checkpointingtypes.GetSignBytes(epochNum, *bh)
 	// Need valid bls signature for aggregation
-	bls := bls12381.Sign(v.Keys.PrivateKey, signBytes)
+	bls := bls12381.Sign(v.Keys.BlsPrivKey, signBytes)
 
 	return checkpointingtypes.VoteExtension{
-		Signer:    v.Keys.ValidatorAddress,
+		Signer:    v.Keys.GenesisKey.ValidatorAddress,
 		BlockHash: bh,
 		EpochNum:  epochNum,
 		Height:    0,
@@ -85,7 +85,7 @@ func (v *TestValidator) SignVoteExtension(
 ) cbftt.ExtendedVoteInfo {
 	votExt := genVoteExt(t,
 		bytes, height, 0, chainId)
-	signature, err := v.Keys.PrivKey.Sign(votExt)
+	signature, err := v.Keys.CometPrivKey.Sign(votExt)
 	require.NoError(t, err)
 
 	evi := cbftt.ExtendedVoteInfo{
@@ -99,13 +99,13 @@ func (v *TestValidator) SignVoteExtension(
 }
 
 func (v *TestValidator) ValidatorAddress(t *testing.T) sdk.ValAddress {
-	valAddress, err := sdk.ValAddressFromBech32(v.Keys.ValidatorAddress)
+	valAddress, err := sdk.ValAddressFromBech32(v.Keys.GenesisKey.ValidatorAddress)
 	require.NoError(t, err)
 	return valAddress
 }
 
 func (v *TestValidator) BlsPubKey() bls12381.PublicKey {
-	return *v.Keys.BlsKey.Pubkey
+	return v.Keys.BlsPrivKey.PubKey()
 }
 
 func genNTestValidators(t *testing.T, n int) []TestValidator {
@@ -129,9 +129,9 @@ func genNTestValidators(t *testing.T, n int) []TestValidator {
 	// Since v0.50.5 Cosmos SDK enforces certain order for vote extensions
 	sort.SliceStable(vals, func(i, j int) bool {
 		if vals[i].Power == vals[j].Power {
-			valAddress1, err := sdk.ValAddressFromBech32(vals[i].Keys.ValidatorAddress)
+			valAddress1, err := sdk.ValAddressFromBech32(vals[i].Keys.GenesisKey.ValidatorAddress)
 			require.NoError(t, err)
-			valAddress2, err := sdk.ValAddressFromBech32(vals[j].Keys.ValidatorAddress)
+			valAddress2, err := sdk.ValAddressFromBech32(vals[j].Keys.GenesisKey.ValidatorAddress)
 			require.NoError(t, err)
 			return bytes.Compare(valAddress1, valAddress2) == -1
 		}
@@ -231,7 +231,7 @@ func verifyCheckpoint(validators []TestValidator, rawCkpt *checkpointingtypes.Ra
 
 	for _, val := range valsCopy {
 		validatorWithBls = append(validatorWithBls, &checkpointingtypes.ValidatorWithBlsKey{
-			ValidatorAddress: val.Keys.ValidatorAddress,
+			ValidatorAddress: val.Keys.GenesisKey.ValidatorAddress,
 			BlsPubKey:        val.BlsPubKey(),
 			VotingPower:      uint64(val.Power),
 		})

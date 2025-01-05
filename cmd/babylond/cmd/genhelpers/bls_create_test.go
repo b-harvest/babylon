@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -35,7 +36,8 @@ func Test_CmdCreateBls(t *testing.T) {
 	cfg, err := genutiltest.CreateDefaultCometConfig(home)
 	require.NoError(t, err)
 
-	signer, err := signer.SetupTestPrivSigner()
+	// wonjoon: password is empty (since testing) -> removed after refactoring (bls-create)
+	signer, err := signer.SetupTestPrivSigner("")
 	require.NoError(t, err)
 	bbn := app.NewBabylonAppWithCustomOptions(t, false, signer, app.SetupOptions{
 		Logger:             logger,
@@ -73,8 +75,7 @@ func Test_CmdCreateBls(t *testing.T) {
 	keyPath := filepath.Join(home, nodeCfg.PrivValidatorKeyFile())
 	statePath := filepath.Join(home, nodeCfg.PrivValidatorStateFile())
 	filePV := privval.GenWrappedFilePV(keyPath, statePath)
-	defer filePV.Clean(keyPath, statePath)
-	filePV.SetAccAddress(addr)
+	defer Clean(keyPath, statePath)
 
 	// execute the gen-bls cmd
 	err = genBlsCmd.ExecuteContext(ctx)
@@ -84,7 +85,14 @@ func Test_CmdCreateBls(t *testing.T) {
 	genKey, err := types.LoadGenesisKeyFromFile(outputFilePath)
 	require.NoError(t, err)
 	require.Equal(t, sdk.ValAddress(addr).String(), genKey.ValidatorAddress)
-	require.True(t, filePV.Key.BlsPubKey.Equal(*genKey.BlsKey.Pubkey))
-	require.Equal(t, filePV.Key.PubKey.Bytes(), genKey.ValPubkey.Bytes())
+	require.True(t, filePV.Keys.BlsPvKey.GetPubKey().Equal(*genKey.BlsKey.Pubkey))
+	require.Equal(t, filePV.Keys.CometPvKey.PubKey.Bytes(), genKey.ValPubkey.Bytes())
+	// require.True(t, filePV.Key.BlsPubKey.Equal(*genKey.BlsKey.Pubkey))
+	// require.Equal(t, filePV.Key.PubKey.Bytes(), genKey.ValPubkey.Bytes())
 	require.True(t, genKey.BlsKey.Pop.IsValid(*genKey.BlsKey.Pubkey, genKey.ValPubkey))
+}
+
+func Clean(keyFilePath, stateFilePath string) {
+	_ = os.RemoveAll(filepath.Dir(keyFilePath))
+	_ = os.RemoveAll(filepath.Dir(stateFilePath))
 }

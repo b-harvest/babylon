@@ -18,16 +18,18 @@ type ValidatorKeys struct {
 	blsPrivkey bls12381.PrivateKey
 }
 
-func NewValidatorKeys(valPrivkey cmtcrypto.PrivKey, blsPrivKey bls12381.PrivateKey) (*ValidatorKeys, error) {
-	pop, err := BuildPoP(valPrivkey, blsPrivKey)
+// wonjoon: refactoring function to get key pv structure, not each private key
+// since prev version get private keys, unnecessary logics for converting for public key in included.
+func NewValidatorKeys(cometPvPrivKey cmtcrypto.PrivKey, blsPvPrivKey bls12381.PrivateKey) (*ValidatorKeys, error) {
+	pop, err := BuildPoP(cometPvPrivKey, blsPvPrivKey)
 	if err != nil {
 		return nil, err
 	}
 	return &ValidatorKeys{
-		ValPubkey:  valPrivkey.PubKey(),
-		BlsPubkey:  blsPrivKey.PubKey(),
-		valPrivkey: valPrivkey,
-		blsPrivkey: blsPrivKey,
+		ValPubkey:  cometPvPrivKey.PubKey(),
+		BlsPubkey:  blsPvPrivKey.PubKey(),
+		valPrivkey: cometPvPrivKey,
+		blsPrivkey: blsPvPrivKey,
 		PoP:        pop,
 	}, nil
 }

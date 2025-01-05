@@ -3,7 +3,6 @@ package checkpointing_test
 import (
 	"testing"
 
-	"github.com/babylonlabs-io/babylon/crypto/bls12381"
 	"github.com/babylonlabs-io/babylon/privval"
 	"github.com/babylonlabs-io/babylon/x/checkpointing"
 	"github.com/cometbft/cometbft/crypto/ed25519"
@@ -14,6 +13,7 @@ import (
 
 	simapp "github.com/babylonlabs-io/babylon/app"
 	"github.com/babylonlabs-io/babylon/x/checkpointing/types"
+	cometbftprivval "github.com/cometbft/cometbft/privval"
 )
 
 func TestInitGenesis(t *testing.T) {
@@ -24,7 +24,13 @@ func TestInitGenesis(t *testing.T) {
 	valNum := 10
 	genKeys := make([]*types.GenesisKey, valNum)
 	for i := 0; i < valNum; i++ {
-		valKeys, err := privval.NewValidatorKeys(ed25519.GenPrivKey(), bls12381.GenPrivKey())
+		// wonjoon: modify to reflect changed function
+		// valKeys, err := privval.NewValidatorKeys(ed25519.GenPrivKey(), bls12381.GenPrivKey())
+		valKeys, err := func() (*privval.ValidatorKeys, error) {
+			cometPv := cometbftprivval.NewFilePV(ed25519.GenPrivKey(), "", "")
+			blsPv := privval.NewBlsPV("", "", "")
+			return privval.NewValidatorKeys(cometPv.Key.PrivKey, blsPv.Key.GetPrivKey())
+		}()
 		require.NoError(t, err)
 		valPubkey, err := cryptocodec.FromCmtPubKeyInterface(valKeys.ValPubkey)
 		require.NoError(t, err)

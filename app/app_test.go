@@ -15,7 +15,10 @@ import (
 
 func TestBabylonBlockedAddrs(t *testing.T) {
 	db := dbm.NewMemDB()
-	signer, _ := signer.SetupTestPrivSigner()
+
+	// wonjoon
+	// todo: set password to parameter
+	signer, _ := signer.SetupTestPrivSigner("")
 	logger := log.NewTestLogger(t)
 
 	app := NewBabylonAppWithCustomOptions(t, false, signer, SetupOptions{
@@ -72,7 +75,10 @@ func TestGetMaccPerms(t *testing.T) {
 
 func TestUpgradeStateOnGenesis(t *testing.T) {
 	db := dbm.NewMemDB()
-	privSigner, err := signer.SetupTestPrivSigner()
+
+	// wonjoon
+	// todo: set password to parameter
+	privSigner, err := signer.SetupTestPrivSigner("")
 	require.NoError(t, err)
 	logger := log.NewTestLogger(t)
 

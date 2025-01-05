@@ -90,7 +90,8 @@ func generateTestGenesisState(t *testing.T, home string, n int) (*app.BabylonApp
 	logger := log.NewNopLogger()
 	cfg, _ := genutiltest.CreateDefaultCometConfig(home)
 
-	signer, err := signer.SetupTestPrivSigner()
+	// wonjoon: password is empty (since testing)
+	signer, err := signer.SetupTestPrivSigner("")
 	require.NoError(t, err)
 	bbn := app.NewBabylonAppWithCustomOptions(t, false, signer, app.SetupOptions{
 		Logger:             logger,

@@ -28,7 +28,9 @@ func TmpAppOptions() simsutils.AppOptionsMap {
 }
 
 func NewTmpBabylonApp() *BabylonApp {
-	signer, _ := signer.SetupTestPrivSigner()
+	// wonjoon
+	// todo: set password to parameter
+	signer, _ := signer.SetupTestPrivSigner("")
 	return NewBabylonApp(
 		log.NewNopLogger(),
 		dbm.NewMemDB(),

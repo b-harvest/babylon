@@ -11,8 +11,8 @@ import (
 type BlsSigner interface {
 	GetAddress() sdk.ValAddress
 	SignMsgWithBls(msg []byte) (bls12381.Signature, error)
-	GetBlsPubkey() (bls12381.PublicKey, error)
-	GetValidatorPubkey() (crypto.PubKey, error)
+	GetBlsPubkey() bls12381.PublicKey
+	GetValidatorPubkey() crypto.PubKey
 }
 
 // SignBLS signs a BLS signature over the given information
@@ -27,9 +27,5 @@ func (k Keeper) GetBLSSignerAddress() sdk.ValAddress {
 }
 
 func (k Keeper) GetValidatorAddress() sdk.ValAddress {
-	pk, err := k.blsSigner.GetValidatorPubkey()
-	if err != nil {
-		panic(err)
-	}
-	return sdk.ValAddress(pk.Address())
+	return sdk.ValAddress(k.blsSigner.GetValidatorPubkey().Address())
 }

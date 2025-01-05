@@ -19,10 +19,13 @@ type GenesisValidators struct {
 	Keys []*GenesisKeyWithBLS
 }
 
+// wonjoon: set structure variables name
+// to avoid confusion between PrivateKey and PrivKey
+// prev: PrivateKey = BLS / PrivKey = Comet
 type GenesisKeyWithBLS struct {
-	checkpointingtypes.GenesisKey
-	bls12381.PrivateKey
-	cmtcrypto.PrivKey
+	GenesisKey   checkpointingtypes.GenesisKey
+	BlsPrivKey   bls12381.PrivateKey
+	CometPrivKey cmtcrypto.PrivKey
 }
 
 func (gvs *GenesisValidators) GetGenesisKeys() []*checkpointingtypes.GenesisKey {
@@ -37,7 +40,7 @@ func (gvs *GenesisValidators) GetGenesisKeys() []*checkpointingtypes.GenesisKey 
 func (gvs *GenesisValidators) GetBLSPrivKeys() []bls12381.PrivateKey {
 	blsPrivKeys := make([]bls12381.PrivateKey, 0, len(gvs.Keys))
 	for _, k := range gvs.Keys {
-		blsPrivKeys = append(blsPrivKeys, k.PrivateKey)
+		blsPrivKeys = append(blsPrivKeys, k.BlsPrivKey)
 	}
 
 	return blsPrivKeys
@@ -46,7 +49,7 @@ func (gvs *GenesisValidators) GetBLSPrivKeys() []bls12381.PrivateKey {
 func (gvs *GenesisValidators) GetValPrivKeys() []cmtcrypto.PrivKey {
 	valPrivKeys := make([]cmtcrypto.PrivKey, 0, len(gvs.Keys))
 	for _, k := range gvs.Keys {
-		valPrivKeys = append(valPrivKeys, k.PrivKey)
+		valPrivKeys = append(valPrivKeys, k.CometPrivKey)
 	}
 
 	return valPrivKeys
@@ -59,6 +62,7 @@ func GenesisValidatorSet(numVals int) (*GenesisValidators, error) {
 		blsPrivKey := bls12381.GenPrivKey()
 		// create validator set with single validator
 		valPrivKey := cmted25519.GenPrivKey()
+
 		valKeys, err := privval.NewValidatorKeys(valPrivKey, blsPrivKey)
 		if err != nil {
 			return nil, err
@@ -77,9 +81,9 @@ func GenesisValidatorSet(numVals int) (*GenesisValidators, error) {
 			return nil, err
 		}
 		genesisVals = append(genesisVals, &GenesisKeyWithBLS{
-			GenesisKey: *genesisKey,
-			PrivateKey: blsPrivKey,
-			PrivKey:    valPrivKey,
+			GenesisKey:   *genesisKey,
+			BlsPrivKey:   blsPrivKey,
+			CometPrivKey: valPrivKey,
 		})
 	}
 
@@ -88,8 +92,8 @@ func GenesisValidatorSet(numVals int) (*GenesisValidators, error) {
 
 // GenesisValidatorSetWithPrivSigner generates a set with `numVals` genesis validators
 // along with the privSigner, which will be in the 0th position of the return validator set
-func GenesisValidatorSetWithPrivSigner(numVals int) (*GenesisValidators, *appsigner.PrivSigner, error) {
-	ps, err := signer.SetupTestPrivSigner()
+func GenesisValidatorSetWithPrivSigner(numVals int, password string) (*GenesisValidators, *appsigner.PrivSigner, error) {
+	ps, err := signer.SetupTestPrivSigner(password)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -98,9 +102,9 @@ func GenesisValidatorSetWithPrivSigner(numVals int) (*GenesisValidators, *appsig
 		return nil, nil, err
 	}
 	signerVal := &GenesisKeyWithBLS{
-		GenesisKey: *signerGenesisKey,
-		PrivateKey: ps.WrappedPV.Key.BlsPrivKey,
-		PrivKey:    ps.WrappedPV.Key.PrivKey,
+		GenesisKey:   *signerGenesisKey,
+		BlsPrivKey:   ps.WrappedPV.Keys.BlsPvKey.GetPrivKey(),
+		CometPrivKey: ps.WrappedPV.Keys.CometPvKey.PrivKey,
 	}
 	genesisVals, err := GenesisValidatorSet(numVals)
 	if err != nil {
