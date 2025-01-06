@@ -9,6 +9,14 @@ import (
 	keystorev4 "github.com/wealdtech/go-eth2-wallet-encryptor-keystorev4"
 )
 
+type Erc2335KeyStore struct {
+	Crypto  map[string]interface{} `json:"crypto"`
+	Version uint                   `json:"version"`
+	UUID    string                 `json:"uuid"`
+	Path    string                 `json:"path"`
+	Pubkey  string                 `json:"pubkey"`
+}
+
 // Encrypt encrypts a BLS private key using the EIP-2335 format
 func EncryptBLS(privKey *bls12381.PrivateKey, password string) ([]byte, error) {
 	if privKey == nil {
@@ -24,13 +32,7 @@ func EncryptBLS(privKey *bls12381.PrivateKey, password string) ([]byte, error) {
 	pubKey := privKey.PubKey().Bytes()
 
 	// Create the keystore json structure
-	keystoreJSON := struct {
-		Crypto  map[string]interface{} `json:"crypto"`
-		Version uint                   `json:"version"`
-		UUID    string                 `json:"uuid"`
-		Path    string                 `json:"path"`
-		Pubkey  string                 `json:"pubkey"`
-	}{
+	keystoreJSON := Erc2335KeyStore{
 		Crypto:  cryptoFields,
 		Version: 4,
 		Pubkey:  fmt.Sprintf("%x", pubKey),
@@ -42,13 +44,7 @@ func EncryptBLS(privKey *bls12381.PrivateKey, password string) ([]byte, error) {
 // Decrypt decrypts an EIP-2335 keystore JSON and returns the BLS private key
 func DecryptBLS(keystoreJSON []byte, password string) (bls12381.PrivateKey, error) {
 	// Parse the keystore json
-	var keystore struct {
-		Crypto  map[string]interface{} `json:"crypto"`
-		Version uint                   `json:"version"`
-		UUID    string                 `json:"uuid"`
-		Path    string                 `json:"path"`
-		Pubkey  string                 `json:"pubkey"`
-	}
+	var keystore Erc2335KeyStore
 
 	if err := json.Unmarshal(keystoreJSON, &keystore); err != nil {
 		return nil, errors.Wrap(err, "failed to parse keystore json")
