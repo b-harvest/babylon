@@ -14,9 +14,11 @@ func TestEncryptBLS(t *testing.T) {
 
 		blsPrivKey := bls12381.GenPrivKey()
 		blsPubKey := blsPrivKey.PubKey().Bytes()
-		password := "password"
 
 		t.Run("encrypt bls key", func(t *testing.T) {
+
+			password := CreateRandomPassword()
+			t.Logf("password: %s", password)
 
 			encryptedBlsKey, err := Encrypt(blsPrivKey, blsPubKey, password)
 			require.NoError(t, err)
@@ -38,6 +40,9 @@ func TestEncryptBLS(t *testing.T) {
 
 		t.Run("save password and encrypt bls key", func(t *testing.T) {
 
+			password := CreateRandomPassword()
+			t.Logf("password: %s", password)
+
 			encryptedBlsKey, err := Encrypt(blsPrivKey, blsPubKey, password)
 			require.NoError(t, err)
 			t.Logf("encrypted bls key: %s", encryptedBlsKey)
@@ -53,8 +58,23 @@ func TestEncryptBLS(t *testing.T) {
 				require.Equal(t, blsPrivKey, bls12381.PrivateKey(decryptedBlsKey))
 			})
 
-			t.Run("failed when password file don't exist", func(t *testing.T) {
+			t.Run("save new password into same file", func(t *testing.T) {
 
+				newPassword := CreateRandomPassword()
+				t.Logf("new password: %s", newPassword)
+				err = SavePasswordToFile(newPassword, "password.txt")
+				require.NoError(t, err)
+			})
+
+			t.Run("failed when load different password and decrypt bls key", func(t *testing.T) {
+
+				password, err := LoadPaswordFromFile("password.txt")
+				require.NoError(t, err)
+				_, err = Decrypt(encryptedBlsKey, password)
+				require.Error(t, err)
+			})
+
+			t.Run("failed when password file don't exist", func(t *testing.T) {
 				_, err := LoadPaswordFromFile("nopassword.txt")
 				require.Error(t, err)
 			})

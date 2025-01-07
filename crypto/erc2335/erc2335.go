@@ -1,6 +1,8 @@
 package erc2335
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -65,4 +67,13 @@ func SavePasswordToFile(password, filePath string) error {
 func LoadPaswordFromFile(filePath string) (string, error) {
 	password, err := os.ReadFile(filePath)
 	return string(password), err
+}
+
+func CreateRandomPassword() string {
+	password := make([]byte, 32)
+	_, err := rand.Read(password)
+	if err != nil {
+		panic(err)
+	}
+	return hex.EncodeToString(password)
 }
