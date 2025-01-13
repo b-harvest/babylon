@@ -4,11 +4,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/cometbft/cometbft/crypto/ed25519"
 
 	govv1 "cosmossdk.io/api/cosmos/gov/v1"
 	sdkmath "cosmossdk.io/math"
@@ -18,13 +21,14 @@ import (
 
 	"github.com/babylonlabs-io/babylon/app"
 	appparams "github.com/babylonlabs-io/babylon/app/params"
+	"github.com/babylonlabs-io/babylon/crypto/bls12381"
 	"github.com/babylonlabs-io/babylon/privval"
 	"github.com/babylonlabs-io/babylon/test/e2e/configurer/chain"
 	"github.com/babylonlabs-io/babylon/test/e2e/configurer/config"
 	"github.com/babylonlabs-io/babylon/test/e2e/containers"
 	"github.com/babylonlabs-io/babylon/test/e2e/initialization"
+
 	cmtcfg "github.com/cometbft/cometbft/config"
-	cmtos "github.com/cometbft/cometbft/libs/os"
 	cmtprivval "github.com/cometbft/cometbft/privval"
 )
 
@@ -254,6 +258,54 @@ func (uc *UpgradeConfigurer) runForkUpgrade() {
 	}
 }
 
+func saveFilesToVolume(node *chain.NodeConfig) error {
+	dir := node.ConfigDir
+
+	cmtCfg := cmtcfg.DefaultConfig()
+	cmtCfg.SetRoot(dir)
+
+	cmtKeyFile := cmtCfg.PrivValidatorKeyFile()
+	cmtStateFile := cmtCfg.PrivValidatorStateFile()
+
+	blsCfg := privval.DefaultBlsConfig()
+	blsCfg.SetRoot(dir)
+
+	blsKeyFile := blsCfg.BlsKeyFile()
+	blsPasswordFile := blsCfg.BlsPasswordFile()
+
+	if err := privval.IsValidFilePath(cmtKeyFile, cmtStateFile, blsKeyFile, blsPasswordFile); err != nil {
+		return err
+	}
+
+	var password string
+	if node.TempBlsInfo.Password == "" {
+		log.Print("node.TempBlsInfo.Password is empty")
+		password = "password"
+	} else {
+		password = node.TempBlsInfo.Password
+	}
+
+	var blsPrivKey bls12381.PrivateKey
+	if node.TempBlsInfo.PrivateKey == nil {
+		log.Print("node.TempBlsInfo.PrivateKey is empty")
+		blsPrivKey = bls12381.GenPrivKey()
+	} else {
+		blsPrivKey = node.TempBlsInfo.PrivateKey
+	}
+	blsPv := privval.NewBlsPV(blsPrivKey, blsKeyFile, blsPasswordFile, node.TempBlsInfo.DelegatorAddress)
+	blsPv.Key.Save(password, node.TempBlsInfo.DelegatorAddress)
+
+	var privKey ed25519.PrivKey
+	if node.PrivateKey == nil {
+		log.Print("node.PrivateKey is empty")
+		privKey = ed25519.GenPrivKey()
+	} else {
+		privKey = ed25519.PrivKey(node.PrivateKey)
+	}
+	cmtprivval.NewFilePV(privKey, cmtKeyFile, cmtStateFile).Save()
+	return nil
+}
+
 func (uc *UpgradeConfigurer) upgradeContainers(chainConfig *chain.Config, propHeight int64) error {
 	// upgrade containers to the locally compiled daemon
 	uc.t.Logf("starting upgrade for chain-id: %s...", chainConfig.Id)
@@ -261,34 +313,8 @@ func (uc *UpgradeConfigurer) upgradeContainers(chainConfig *chain.Config, propHe
 	uc.containerManager.CurrentTag = "latest"
 
 	for _, node := range chainConfig.NodeConfigs {
-		// node.BlsKey
-		// tempBlsInfo := node.TempBlsInfo
-
-		blsCfg := privval.DefaultBlsConfig()
-		keyFilePath := filepath.Join(node.ConfigDir, blsCfg.BlsKeyFile())
-		passwordFilePath := filepath.Join(node.ConfigDir, blsCfg.BlsPasswordFile())
-
-		if err := privval.IsValidFilePath(keyFilePath, passwordFilePath); err != nil {
+		if err := saveFilesToVolume(node); err != nil {
 			return err
-		}
-
-		// generate BLS key
-		if cmtos.FileExists(keyFilePath) {
-			privval.LoadBlsPV(keyFilePath, passwordFilePath)
-		} else {
-			privval.GenBlsPV(keyFilePath, passwordFilePath, "password", "")
-		}
-
-		cmtCfg := cmtcfg.DefaultConfig()
-		cmtKeyFile := filepath.Join(node.ConfigDir, cmtCfg.PrivValidatorKeyFile())
-		cmtStateFile := filepath.Join(node.ConfigDir, cmtCfg.PrivValidatorStateFile())
-
-		if cmtos.FileExists(cmtKeyFile) {
-			cmtprivval.LoadFilePV(cmtKeyFile, cmtStateFile)
-		} else {
-			pv := cmtprivval.GenFilePV(cmtKeyFile, cmtStateFile)
-			pv.Key.Save()
-			pv.LastSignState.Save()
 		}
 
 		if err := node.Run(); err != nil {
