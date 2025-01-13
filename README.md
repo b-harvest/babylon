@@ -69,3 +69,7 @@ Guides](https://github.com/babylonlabs-io/networks/blob/main/bbn-test-5/README.m
 
 The [docs](./docs) directory contains the necessary information on how to get
 started using the babylond executable for development purposes.
+
+## Testing History
+
+- 2025-01-13-13:22 : Initial test
