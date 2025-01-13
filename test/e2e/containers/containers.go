@@ -5,12 +5,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
 	"time"
 
+	cmtCfg "github.com/cometbft/cometbft/config"
+	cmtos "github.com/cometbft/cometbft/libs/os"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
@@ -261,6 +265,12 @@ func (m *Manager) RunNodeResource(chainId string, containerName, valCondifDir st
 	pwd, err := os.Getwd()
 	if err != nil {
 		return nil, err
+	}
+
+	if cmtos.FileExists(filepath.Join(valCondifDir, cmtCfg.DefaultConfig().PrivValidatorKeyFile())) {
+		log.Print("file is exists: ", filepath.Join(valCondifDir, cmtCfg.DefaultConfig().PrivValidatorKeyFile()))
+	} else {
+		log.Print("file is not exists: ", filepath.Join(valCondifDir, cmtCfg.DefaultConfig().PrivValidatorKeyFile()))
 	}
 
 	runOpts := &dockertest.RunOptions{
