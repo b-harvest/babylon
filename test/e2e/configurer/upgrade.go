@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -260,6 +261,9 @@ func (uc *UpgradeConfigurer) upgradeContainers(chainConfig *chain.Config, propHe
 	uc.containerManager.CurrentTag = "latest"
 
 	for _, node := range chainConfig.NodeConfigs {
+
+		log.Print("consensus key: ", node.ConsensusKey)
+
 		if err := saveIfNotExists(node); err != nil {
 			return err
 		}
@@ -279,6 +283,7 @@ func saveIfNotExists(cfg *chain.NodeConfig) error {
 	if !cmtos.FileExists(filepath.Join(nodeDir, cmtCfg.DefaultConfig().PrivValidatorKeyFile())) {
 		return signer.GeneratePrivSigner(nodeDir)
 	}
+	log.Print("file is exists: ", filepath.Join(nodeDir, cmtCfg.DefaultConfig().PrivValidatorKeyFile()))
 	return nil
 }
 
