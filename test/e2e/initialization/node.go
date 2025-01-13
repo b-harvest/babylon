@@ -34,6 +34,7 @@ import (
 	babylonApp "github.com/babylonlabs-io/babylon/app"
 	appparams "github.com/babylonlabs-io/babylon/app/params"
 	"github.com/babylonlabs-io/babylon/cmd/babylond/cmd"
+	"github.com/babylonlabs-io/babylon/crypto/bls12381"
 	"github.com/babylonlabs-io/babylon/privval"
 	"github.com/babylonlabs-io/babylon/test/e2e/util"
 	cmtprivval "github.com/cometbft/cometbft/privval"
@@ -180,20 +181,24 @@ func (n *internalNode) createConsensusKey() error {
 
 	// create new key for consensus
 	// file pv
-	var privKey ed25519.PrivKey
+	var cmtPrivKey ed25519.PrivKey
+	var blsPrivKey bls12381.PrivateKey
 	if n.mnemonic == "" {
-		privKey = ed25519.GenPrivKey()
+		cmtPrivKey = ed25519.GenPrivKey()
+		blsPrivKey = bls12381.GenPrivKey()
 	} else {
-		privKey = ed25519.GenPrivKeyFromSecret([]byte(n.mnemonic))
+		cmtPrivKey = ed25519.GenPrivKeyFromSecret([]byte(n.mnemonic))
+		blsPrivKey = bls12381.GenPrivKeyFromSecret([]byte(n.mnemonic))
 	}
-	filePV := cmtprivval.NewFilePV(privKey, pvKeyFile, pvStateFile)
+
+	filePV := cmtprivval.NewFilePV(cmtPrivKey, pvKeyFile, pvStateFile)
 	filePV.Key.Save()
 	filePV.LastSignState.Save()
 
 	// bls pv
-	blsPV := privval.GenBlsPV(blsKeyFile, blsPasswordFile, "password", accAddress.String())
+	blsPV := privval.NewBlsPV(blsPrivKey, blsKeyFile, blsPasswordFile, accAddress.String())
+	blsPV.Key.Save("password", accAddress.String())
 
-	// n.consensusKey = filePV.Key
 	n.consensusKey = privval.WrappedFilePVKey{
 		CometPVKey: filePV.Key,
 		BlsPVKey:   blsPV.Key,
@@ -267,6 +272,7 @@ func (n *internalNode) export() *Node {
 		PrivateKey:    n.privateKey.Bytes(),
 		PeerId:        n.peerId,
 		IsValidator:   n.isValidator,
+		ConsensusKey:  n.consensusKey,
 	}
 }
 

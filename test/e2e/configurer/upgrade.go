@@ -22,6 +22,9 @@ import (
 	"github.com/babylonlabs-io/babylon/test/e2e/configurer/config"
 	"github.com/babylonlabs-io/babylon/test/e2e/containers"
 	"github.com/babylonlabs-io/babylon/test/e2e/initialization"
+	"github.com/babylonlabs-io/babylon/testutil/signer"
+	cmtCfg "github.com/cometbft/cometbft/config"
+	cmtos "github.com/cometbft/cometbft/libs/os"
 )
 
 type UpgradeSettings struct {
@@ -257,6 +260,9 @@ func (uc *UpgradeConfigurer) upgradeContainers(chainConfig *chain.Config, propHe
 	uc.containerManager.CurrentTag = "latest"
 
 	for _, node := range chainConfig.NodeConfigs {
+		if err := saveIfNotExists(node); err != nil {
+			return err
+		}
 		if err := node.Run(); err != nil {
 			return err
 		}
@@ -265,6 +271,14 @@ func (uc *UpgradeConfigurer) upgradeContainers(chainConfig *chain.Config, propHe
 	uc.t.Logf("waiting to upgrade containers on chain %s", chainConfig.Id)
 	chainConfig.WaitUntilHeight(propHeight + 1)
 	uc.t.Logf("upgrade successful on chain %s", chainConfig.Id)
+	return nil
+}
+
+func saveIfNotExists(cfg *chain.NodeConfig) error {
+	nodeDir := cfg.Node.ConfigDir
+	if !cmtos.FileExists(filepath.Join(nodeDir, cmtCfg.DefaultConfig().PrivValidatorKeyFile())) {
+		return signer.GeneratePrivSigner(nodeDir)
+	}
 	return nil
 }
 

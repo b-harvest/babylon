@@ -2,6 +2,8 @@ package initialization
 
 import (
 	"fmt"
+
+	"github.com/babylonlabs-io/babylon/privval"
 )
 
 type ChainMeta struct {
@@ -19,6 +21,7 @@ type Node struct {
 	PrivateKey    []byte `json:"privateKey"`
 	PeerId        string `json:"peerId"`
 	IsValidator   bool   `json:"isValidator"`
+	ConsensusKey  privval.WrappedFilePVKey
 }
 
 type Chain struct {
