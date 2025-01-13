@@ -2,6 +2,7 @@ package datagen
 
 import (
 	"fmt"
+	"path/filepath"
 
 	cfg "github.com/cometbft/cometbft/config"
 	"github.com/cometbft/cometbft/crypto/ed25519"
@@ -40,10 +41,11 @@ func InitializeNodeValidatorFilesFromMnemonic(config *cfg.Config, mnemonic strin
 
 	// bls config
 	blsCfg := privval.DefaultBlsConfig()
-	blsCfg.SetRoot(config.RootDir)
+	// blsCfg.SetRoot(config.RootDir)
 
-	blsKeyFile := blsCfg.BlsKeyFile()
-	blsPasswordFile := blsCfg.BlsPasswordFile()
+	blsKeyFile := filepath.Join(config.RootDir, blsCfg.BlsKeyFile())
+	blsPasswordFile := filepath.Join(config.RootDir, blsCfg.BlsPasswordFile())
+
 	if err := privval.IsValidFilePath(blsKeyFile, blsPasswordFile); err != nil {
 		return "", nil, err
 	}

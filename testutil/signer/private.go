@@ -21,9 +21,9 @@ func SetupTestPrivSigner() (*signer.PrivSigner, error) {
 	if err != nil {
 		return nil, err
 	}
-	// defer func() {
-	// 	_ = os.RemoveAll(nodeDir)
-	// }()
+	defer func() {
+		_ = os.RemoveAll(nodeDir)
+	}()
 
 	// generate a privSigner
 	if err := GeneratePrivSigner(nodeDir); err != nil {
