@@ -66,15 +66,17 @@ func (n *NodeConfig) Run() error {
 		n.t,
 		func() bool {
 			// This fails if unsuccessful.
-			_, err := n.QueryCurrentHeight()
+			height, err := n.QueryCurrentHeight()
 			if err != nil {
+				n.t.Logf("node %s: error querying height: %v", n.Name, err)
 				return false
 			}
+			n.t.Logf("node %s: current height: %d", n.Name, height)
 			n.t.Logf("started node container: %s", n.Name)
 			return true
 		},
-		3*time.Minute,
-		2*time.Second,
+		5*time.Minute,
+		5*time.Second,
 		"bbn node failed to produce blocks",
 	)
 

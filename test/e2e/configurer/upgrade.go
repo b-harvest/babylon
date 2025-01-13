@@ -256,9 +256,13 @@ func (uc *UpgradeConfigurer) upgradeContainers(chainConfig *chain.Config, propHe
 	uc.containerManager.CurrentRepository = containers.BabylonContainerName
 	uc.containerManager.CurrentTag = "latest"
 
-	for _, node := range chainConfig.NodeConfigs {
+	for i, node := range chainConfig.NodeConfigs {
 		if err := node.Run(); err != nil {
 			return err
+		}
+		// Add delay between node restarts to avoid resource contention
+		if i < len(chainConfig.NodeConfigs)-1 {
+			time.Sleep(10 * time.Second)
 		}
 	}
 
