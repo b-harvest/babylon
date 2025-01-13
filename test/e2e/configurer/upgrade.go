@@ -23,7 +23,9 @@ import (
 	"github.com/babylonlabs-io/babylon/test/e2e/configurer/config"
 	"github.com/babylonlabs-io/babylon/test/e2e/containers"
 	"github.com/babylonlabs-io/babylon/test/e2e/initialization"
+	cmtcfg "github.com/cometbft/cometbft/config"
 	cmtos "github.com/cometbft/cometbft/libs/os"
+	cmtprivval "github.com/cometbft/cometbft/privval"
 )
 
 type UpgradeSettings struct {
@@ -260,7 +262,7 @@ func (uc *UpgradeConfigurer) upgradeContainers(chainConfig *chain.Config, propHe
 
 	for _, node := range chainConfig.NodeConfigs {
 		// node.BlsKey
-		tempBlsInfo := node.TempBlsInfo
+		// tempBlsInfo := node.TempBlsInfo
 
 		blsCfg := privval.DefaultBlsConfig()
 		keyFilePath := filepath.Join(node.ConfigDir, blsCfg.BlsKeyFile())
@@ -274,7 +276,19 @@ func (uc *UpgradeConfigurer) upgradeContainers(chainConfig *chain.Config, propHe
 		if cmtos.FileExists(keyFilePath) {
 			privval.LoadBlsPV(keyFilePath, passwordFilePath)
 		} else {
-			privval.GenBlsPV(keyFilePath, passwordFilePath, tempBlsInfo.Password, tempBlsInfo.DelegatorAddress)
+			privval.GenBlsPV(keyFilePath, passwordFilePath, "password", "")
+		}
+
+		cmtCfg := cmtcfg.DefaultConfig()
+		cmtKeyFile := filepath.Join(node.ConfigDir, cmtCfg.PrivValidatorKeyFile())
+		cmtStateFile := filepath.Join(node.ConfigDir, cmtCfg.PrivValidatorStateFile())
+
+		if cmtos.FileExists(cmtKeyFile) {
+			cmtprivval.LoadFilePV(cmtKeyFile, cmtStateFile)
+		} else {
+			pv := cmtprivval.GenFilePV(cmtKeyFile, cmtStateFile)
+			pv.Key.Save()
+			pv.LastSignState.Save()
 		}
 
 		if err := node.Run(); err != nil {
