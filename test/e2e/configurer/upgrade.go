@@ -262,16 +262,21 @@ func (uc *UpgradeConfigurer) upgradeContainers(chainConfig *chain.Config, propHe
 		// node.BlsKey
 		tempBlsInfo := node.TempBlsInfo
 
-		if err := privval.IsValidFilePath(tempBlsInfo.KeyFilePath, tempBlsInfo.PasswordFilePath); err != nil {
+		blsCfg := privval.DefaultBlsConfig()
+		keyFilePath := filepath.Join(node.ConfigDir, blsCfg.BlsKeyFile())
+		passwordFilePath := filepath.Join(node.ConfigDir, blsCfg.BlsPasswordFile())
+
+		if err := privval.IsValidFilePath(keyFilePath, passwordFilePath); err != nil {
 			return err
 		}
 
 		// generate BLS key
-		if cmtos.FileExists(tempBlsInfo.KeyFilePath) {
-			privval.LoadBlsPV(tempBlsInfo.KeyFilePath, tempBlsInfo.PasswordFilePath)
+		if cmtos.FileExists(keyFilePath) {
+			privval.LoadBlsPV(keyFilePath, passwordFilePath)
 		} else {
-			privval.GenBlsPV(tempBlsInfo.KeyFilePath, tempBlsInfo.PasswordFilePath, tempBlsInfo.Password, tempBlsInfo.DelegatorAddress)
+			privval.GenBlsPV(keyFilePath, passwordFilePath, tempBlsInfo.Password, tempBlsInfo.DelegatorAddress)
 		}
+
 		if err := node.Run(); err != nil {
 			return err
 		}
