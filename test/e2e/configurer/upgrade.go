@@ -18,6 +18,7 @@ import (
 
 	"github.com/babylonlabs-io/babylon/app"
 	appparams "github.com/babylonlabs-io/babylon/app/params"
+	"github.com/babylonlabs-io/babylon/privval"
 	"github.com/babylonlabs-io/babylon/test/e2e/configurer/chain"
 	"github.com/babylonlabs-io/babylon/test/e2e/configurer/config"
 	"github.com/babylonlabs-io/babylon/test/e2e/containers"
@@ -257,6 +258,11 @@ func (uc *UpgradeConfigurer) upgradeContainers(chainConfig *chain.Config, propHe
 	uc.containerManager.CurrentTag = "latest"
 
 	for _, node := range chainConfig.NodeConfigs {
+		// node.BlsKey
+		tempBlsInfo := node.TempBlsInfo
+
+		// generate BLS key
+		privval.GenBlsPV(tempBlsInfo.KeyFilePath, tempBlsInfo.PasswordFilePath, tempBlsInfo.Password, tempBlsInfo.DelegatorAddress)
 		if err := node.Run(); err != nil {
 			return err
 		}

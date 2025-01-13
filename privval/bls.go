@@ -131,6 +131,14 @@ func (k *BlsPVKey) Save(password, addr string) {
 	}
 }
 
+func (k *BlsPVKey) GetKeyFilePath() string {
+	return k.filePath
+}
+
+func (k *BlsPVKey) GetPasswordFilePath() string {
+	return k.passwordPath
+}
+
 // -------------------------------------------------------------------------------
 // ---------------------------- BLS Config ---------------------------------------
 // -------------------------------------------------------------------------------

@@ -34,6 +34,8 @@ import (
 	babylonApp "github.com/babylonlabs-io/babylon/app"
 	appparams "github.com/babylonlabs-io/babylon/app/params"
 	"github.com/babylonlabs-io/babylon/cmd/babylond/cmd"
+	"github.com/babylonlabs-io/babylon/crypto/bls12381"
+	"github.com/babylonlabs-io/babylon/crypto/erc2335"
 	"github.com/babylonlabs-io/babylon/privval"
 	"github.com/babylonlabs-io/babylon/test/e2e/util"
 	cmtprivval "github.com/cometbft/cometbft/privval"
@@ -49,6 +51,14 @@ type internalNode struct {
 	nodeKey      p2p.NodeKey
 	peerId       string
 	isValidator  bool
+}
+
+type TempBlsInfo struct {
+	PrivateKey       bls12381.PrivateKey
+	Password         string
+	DelegatorAddress string
+	KeyFilePath      string
+	PasswordFilePath string
 }
 
 func newNode(chain *internalChain, nodeConfig *NodeConfig) (*internalNode, error) {
@@ -257,6 +267,22 @@ func (n *internalNode) export() *Node {
 		panic("pub key should be correct")
 	}
 
+	blsKey := n.consensusKey.BlsPVKey
+
+	tempBlsInfo := func(blsPvKey privval.BlsPVKey) TempBlsInfo {
+		password, err := erc2335.LoadPaswordFromFile(blsKey.GetPasswordFilePath())
+		if err != nil {
+			panic(err)
+		}
+		return TempBlsInfo{
+			PrivateKey:       blsPvKey.PrivKey,
+			Password:         password,
+			KeyFilePath:      blsKey.GetKeyFilePath(),
+			PasswordFilePath: blsKey.GetPasswordFilePath(),
+			DelegatorAddress: blsPvKey.DelegatorAddress,
+		}
+	}(blsKey)
+
 	return &Node{
 		Name:          n.moniker,
 		ConfigDir:     n.configDir(),
@@ -267,6 +293,7 @@ func (n *internalNode) export() *Node {
 		PrivateKey:    n.privateKey.Bytes(),
 		PeerId:        n.peerId,
 		IsValidator:   n.isValidator,
+		TempBlsInfo:   &tempBlsInfo,
 	}
 }
 
