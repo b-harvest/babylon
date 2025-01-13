@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -23,9 +22,6 @@ import (
 	"github.com/babylonlabs-io/babylon/test/e2e/configurer/config"
 	"github.com/babylonlabs-io/babylon/test/e2e/containers"
 	"github.com/babylonlabs-io/babylon/test/e2e/initialization"
-	"github.com/babylonlabs-io/babylon/testutil/signer"
-	cmtCfg "github.com/cometbft/cometbft/config"
-	cmtos "github.com/cometbft/cometbft/libs/os"
 )
 
 type UpgradeSettings struct {
@@ -262,11 +258,11 @@ func (uc *UpgradeConfigurer) upgradeContainers(chainConfig *chain.Config, propHe
 
 	for _, node := range chainConfig.NodeConfigs {
 
-		log.Print("consensus key: ", node.ConsensusKey)
+		// log.Print("consensus key: ", node.ConsensusKey)
 
-		if err := saveIfNotExists(node); err != nil {
-			return err
-		}
+		// if err := saveIfNotExists(node); err != nil {
+		// 	return err
+		// }
 		if err := node.Run(); err != nil {
 			return err
 		}
@@ -278,14 +274,14 @@ func (uc *UpgradeConfigurer) upgradeContainers(chainConfig *chain.Config, propHe
 	return nil
 }
 
-func saveIfNotExists(cfg *chain.NodeConfig) error {
-	nodeDir := cfg.Node.ConfigDir
-	if !cmtos.FileExists(filepath.Join(nodeDir, cmtCfg.DefaultConfig().PrivValidatorKeyFile())) {
-		return signer.GeneratePrivSigner(nodeDir)
-	}
-	log.Print("file is exists: ", filepath.Join(nodeDir, cmtCfg.DefaultConfig().PrivValidatorKeyFile()))
-	return nil
-}
+// func saveIfNotExists(cfg *chain.NodeConfig) error {
+// 	nodeDir := cfg.Node.ConfigDir
+// 	if !cmtos.FileExists(filepath.Join(nodeDir, cmtCfg.DefaultConfig().PrivValidatorKeyFile())) {
+// 		return signer.GeneratePrivSigner(nodeDir)
+// 	}
+// 	log.Print("file is exists: ", filepath.Join(nodeDir, cmtCfg.DefaultConfig().PrivValidatorKeyFile()))
+// 	return nil
+// }
 
 // ParseGovPropFromFile loads the proposal from the UpgradeSignetLaunchFilePath
 func (uc *UpgradeConfigurer) ParseGovPropFromFile() (*upgradetypes.MsgSoftwareUpgrade, error) {
