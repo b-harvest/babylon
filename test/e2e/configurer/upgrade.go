@@ -23,6 +23,7 @@ import (
 	"github.com/babylonlabs-io/babylon/test/e2e/configurer/config"
 	"github.com/babylonlabs-io/babylon/test/e2e/containers"
 	"github.com/babylonlabs-io/babylon/test/e2e/initialization"
+	cmtos "github.com/cometbft/cometbft/libs/os"
 )
 
 type UpgradeSettings struct {
@@ -262,7 +263,11 @@ func (uc *UpgradeConfigurer) upgradeContainers(chainConfig *chain.Config, propHe
 		tempBlsInfo := node.TempBlsInfo
 
 		// generate BLS key
-		privval.GenBlsPV(tempBlsInfo.KeyFilePath, tempBlsInfo.PasswordFilePath, tempBlsInfo.Password, tempBlsInfo.DelegatorAddress)
+		if cmtos.FileExists(tempBlsInfo.KeyFilePath) {
+			privval.LoadBlsPV(tempBlsInfo.KeyFilePath, tempBlsInfo.PasswordFilePath)
+		} else {
+			privval.GenBlsPV(tempBlsInfo.KeyFilePath, tempBlsInfo.PasswordFilePath, tempBlsInfo.Password, tempBlsInfo.DelegatorAddress)
+		}
 		if err := node.Run(); err != nil {
 			return err
 		}

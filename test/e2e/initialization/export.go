@@ -19,7 +19,7 @@ type Node struct {
 	PrivateKey    []byte `json:"privateKey"`
 	PeerId        string `json:"peerId"`
 	IsValidator   bool   `json:"isValidator"`
-	TempBlsInfo   *TempBlsInfo
+	TempBlsInfo   TempBlsInfo
 }
 
 type Chain struct {

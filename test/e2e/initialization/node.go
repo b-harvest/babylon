@@ -269,17 +269,17 @@ func (n *internalNode) export() *Node {
 
 	blsKey := n.consensusKey.BlsPVKey
 
-	tempBlsInfo := func(blsPvKey privval.BlsPVKey) TempBlsInfo {
-		password, err := erc2335.LoadPaswordFromFile(blsKey.GetPasswordFilePath())
+	tempBlsInfo := func(k privval.BlsPVKey) TempBlsInfo {
+		password, err := erc2335.LoadPaswordFromFile(k.GetPasswordFilePath())
 		if err != nil {
 			panic(err)
 		}
 		return TempBlsInfo{
-			PrivateKey:       blsPvKey.PrivKey,
+			PrivateKey:       k.PrivKey,
 			Password:         password,
-			KeyFilePath:      blsKey.GetKeyFilePath(),
-			PasswordFilePath: blsKey.GetPasswordFilePath(),
-			DelegatorAddress: blsPvKey.DelegatorAddress,
+			KeyFilePath:      k.GetKeyFilePath(),
+			PasswordFilePath: k.GetPasswordFilePath(),
+			DelegatorAddress: k.DelegatorAddress,
 		}
 	}(blsKey)
 
@@ -293,7 +293,7 @@ func (n *internalNode) export() *Node {
 		PrivateKey:    n.privateKey.Bytes(),
 		PeerId:        n.peerId,
 		IsValidator:   n.isValidator,
-		TempBlsInfo:   &tempBlsInfo,
+		TempBlsInfo:   tempBlsInfo,
 	}
 }
 
