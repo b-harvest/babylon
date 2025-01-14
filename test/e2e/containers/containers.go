@@ -5,12 +5,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/babylonlabs-io/babylon/crypto/erc2335"
+	"github.com/babylonlabs-io/babylon/privval"
+	cmtos "github.com/cometbft/cometbft/libs/os"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
@@ -262,6 +267,26 @@ func (m *Manager) RunNodeResource(chainId string, containerName, valCondifDir st
 	if err != nil {
 		return nil, err
 	}
+
+	// ======= TESTING START =======
+	log.Print("==> RunNodeResource()")
+	log.Print("=> valCondifDir: ", valCondifDir)
+
+	blsKeyFile := filepath.Join(valCondifDir, privval.DefaultBlsConfig().BlsKeyFile())
+	blsPasswordFile := filepath.Join(valCondifDir, privval.DefaultBlsConfig().BlsPasswordFile())
+	if cmtos.FileExists(blsKeyFile) {
+		log.Print("=> file exists: blsPasswordFile: ", blsPasswordFile)
+
+		passwd, err := erc2335.LoadPaswordFromFile(blsPasswordFile)
+		if err != nil {
+			log.Print("=> failed to load password: ", err.Error())
+			return nil, err
+		}
+		log.Print("=> loaded password: ", passwd)
+	} else {
+		log.Print("=> file not exists: blsPasswordFile: ", blsPasswordFile)
+	}
+	// ======= TESTING END =======
 
 	runOpts := &dockertest.RunOptions{
 		Name:       containerName,

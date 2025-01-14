@@ -35,7 +35,6 @@ import (
 	appparams "github.com/babylonlabs-io/babylon/app/params"
 	"github.com/babylonlabs-io/babylon/cmd/babylond/cmd"
 	"github.com/babylonlabs-io/babylon/crypto/bls12381"
-	"github.com/babylonlabs-io/babylon/crypto/erc2335"
 	"github.com/babylonlabs-io/babylon/privval"
 	"github.com/babylonlabs-io/babylon/test/e2e/util"
 	cmtprivval "github.com/cometbft/cometbft/privval"
@@ -267,22 +266,6 @@ func (n *internalNode) export() *Node {
 		panic("pub key should be correct")
 	}
 
-	blsKey := n.consensusKey.BlsPVKey
-
-	tempBlsInfo := func(k privval.BlsPVKey) TempBlsInfo {
-		password, err := erc2335.LoadPaswordFromFile(k.GetPasswordFilePath())
-		if err != nil {
-			panic(err)
-		}
-		return TempBlsInfo{
-			PrivateKey:       k.PrivKey,
-			Password:         password,
-			KeyFilePath:      k.GetKeyFilePath(),
-			PasswordFilePath: k.GetPasswordFilePath(),
-			DelegatorAddress: k.DelegatorAddress,
-		}
-	}(blsKey)
-
 	return &Node{
 		Name:          n.moniker,
 		ConfigDir:     n.configDir(),
@@ -293,7 +276,7 @@ func (n *internalNode) export() *Node {
 		PrivateKey:    n.privateKey.Bytes(),
 		PeerId:        n.peerId,
 		IsValidator:   n.isValidator,
-		TempBlsInfo:   tempBlsInfo,
+		ConsensusKey:  n.consensusKey,
 	}
 }
 

@@ -11,8 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cometbft/cometbft/crypto/ed25519"
-
 	govv1 "cosmossdk.io/api/cosmos/gov/v1"
 	sdkmath "cosmossdk.io/math"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
@@ -21,15 +19,13 @@ import (
 
 	"github.com/babylonlabs-io/babylon/app"
 	appparams "github.com/babylonlabs-io/babylon/app/params"
-	"github.com/babylonlabs-io/babylon/crypto/bls12381"
 	"github.com/babylonlabs-io/babylon/privval"
 	"github.com/babylonlabs-io/babylon/test/e2e/configurer/chain"
 	"github.com/babylonlabs-io/babylon/test/e2e/configurer/config"
 	"github.com/babylonlabs-io/babylon/test/e2e/containers"
 	"github.com/babylonlabs-io/babylon/test/e2e/initialization"
 
-	cmtcfg "github.com/cometbft/cometbft/config"
-	cmtprivval "github.com/cometbft/cometbft/privval"
+	cmtos "github.com/cometbft/cometbft/libs/os"
 )
 
 type UpgradeSettings struct {
@@ -258,53 +254,53 @@ func (uc *UpgradeConfigurer) runForkUpgrade() {
 	}
 }
 
-func saveFilesToVolume(node *chain.NodeConfig) error {
-	dir := node.ConfigDir
+// func saveFilesToVolume(node *chain.NodeConfig) error {
+// 	dir := node.ConfigDir
 
-	cmtCfg := cmtcfg.DefaultConfig()
-	cmtCfg.SetRoot(dir)
+// 	cmtCfg := cmtcfg.DefaultConfig()
+// 	cmtCfg.SetRoot(dir)
 
-	cmtKeyFile := cmtCfg.PrivValidatorKeyFile()
-	cmtStateFile := cmtCfg.PrivValidatorStateFile()
+// 	cmtKeyFile := cmtCfg.PrivValidatorKeyFile()
+// 	cmtStateFile := cmtCfg.PrivValidatorStateFile()
 
-	blsCfg := privval.DefaultBlsConfig()
-	blsCfg.SetRoot(dir)
+// 	blsCfg := privval.DefaultBlsConfig()
+// 	blsCfg.SetRoot(dir)
 
-	blsKeyFile := blsCfg.BlsKeyFile()
-	blsPasswordFile := blsCfg.BlsPasswordFile()
+// 	blsKeyFile := blsCfg.BlsKeyFile()
+// 	blsPasswordFile := blsCfg.BlsPasswordFile()
 
-	if err := privval.IsValidFilePath(cmtKeyFile, cmtStateFile, blsKeyFile, blsPasswordFile); err != nil {
-		return err
-	}
+// 	if err := privval.IsValidFilePath(cmtKeyFile, cmtStateFile, blsKeyFile, blsPasswordFile); err != nil {
+// 		return err
+// 	}
 
-	var password string
-	if node.TempBlsInfo.Password == "" {
-		log.Print("node.TempBlsInfo.Password is empty")
-		password = "password"
-	} else {
-		password = node.TempBlsInfo.Password
-	}
+// 	var password string
+// 	if node.TempBlsInfo.Password == "" {
+// 		log.Print("node.TempBlsInfo.Password is empty")
+// 		password = "password"
+// 	} else {
+// 		password = node.TempBlsInfo.Password
+// 	}
 
-	var blsPrivKey bls12381.PrivateKey
-	if node.TempBlsInfo.PrivateKey == nil {
-		log.Print("node.TempBlsInfo.PrivateKey is empty")
-		blsPrivKey = bls12381.GenPrivKey()
-	} else {
-		blsPrivKey = node.TempBlsInfo.PrivateKey
-	}
-	blsPv := privval.NewBlsPV(blsPrivKey, blsKeyFile, blsPasswordFile, node.TempBlsInfo.DelegatorAddress)
-	blsPv.Key.Save(password, node.TempBlsInfo.DelegatorAddress)
+// 	var blsPrivKey bls12381.PrivateKey
+// 	if node.TempBlsInfo.PrivateKey == nil {
+// 		log.Print("node.TempBlsInfo.PrivateKey is empty")
+// 		blsPrivKey = bls12381.GenPrivKey()
+// 	} else {
+// 		blsPrivKey = node.TempBlsInfo.PrivateKey
+// 	}
+// 	blsPv := privval.NewBlsPV(blsPrivKey, blsKeyFile, blsPasswordFile, node.TempBlsInfo.DelegatorAddress)
+// 	blsPv.Key.Save(password, node.TempBlsInfo.DelegatorAddress)
 
-	var privKey ed25519.PrivKey
-	if node.PrivateKey == nil {
-		log.Print("node.PrivateKey is empty")
-		privKey = ed25519.GenPrivKey()
-	} else {
-		privKey = ed25519.PrivKey(node.PrivateKey)
-	}
-	cmtprivval.NewFilePV(privKey, cmtKeyFile, cmtStateFile).Save()
-	return nil
-}
+// 	var privKey ed25519.PrivKey
+// 	if node.PrivateKey == nil {
+// 		log.Print("node.PrivateKey is empty")
+// 		privKey = ed25519.GenPrivKey()
+// 	} else {
+// 		privKey = ed25519.PrivKey(node.PrivateKey)
+// 	}
+// 	cmtprivval.NewFilePV(privKey, cmtKeyFile, cmtStateFile).Save()
+// 	return nil
+// }
 
 func (uc *UpgradeConfigurer) upgradeContainers(chainConfig *chain.Config, propHeight int64) error {
 	// upgrade containers to the locally compiled daemon
@@ -313,10 +309,34 @@ func (uc *UpgradeConfigurer) upgradeContainers(chainConfig *chain.Config, propHe
 	uc.containerManager.CurrentTag = "latest"
 
 	for _, node := range chainConfig.NodeConfigs {
-		if err := saveFilesToVolume(node); err != nil {
-			return err
+		// ======= TESTING START =======
+		log.Print("==> upgradeContainers()")
+		log.Print("=> node.ConfigDir: ", node.ConfigDir)
+
+		var keyIs, pwIs bool
+
+		log.Print("=> bls")
+		if cmtos.FileExists(node.ConsensusKey.BlsPVKey.GetKeyFilePath()) {
+			log.Print("=> file exists: node.ConsensusKey.BlsPVKey.GetKeyFilePath(): ", node.ConsensusKey.BlsPVKey.GetKeyFilePath())
+			keyIs = true
+		} else {
+			log.Print("=> file does not exist: node.ConsensusKey.BlsPVKey.GetKeyFilePath(): ", node.ConsensusKey.BlsPVKey.GetKeyFilePath())
+			keyIs = false
 		}
 
+		if cmtos.FileExists(node.ConsensusKey.BlsPVKey.GetPasswordFilePath()) {
+			log.Print("=> file exists: node.ConsensusKey.BlsPVKey.GetPasswordFilePath(): ", node.ConsensusKey.BlsPVKey.GetPasswordFilePath())
+			pwIs = true
+		} else {
+			log.Print("=> file does not exist: node.ConsensusKey.BlsPVKey.GetPasswordFilePath(): ", node.ConsensusKey.BlsPVKey.GetPasswordFilePath())
+			pwIs = false
+		}
+
+		if keyIs && pwIs {
+			pv := privval.LoadBlsPV(node.ConsensusKey.BlsPVKey.GetKeyFilePath(), node.ConsensusKey.BlsPVKey.GetPasswordFilePath())
+			log.Print("bls pv: ", pv)
+		}
+		// ======= TESTING END =======
 		if err := node.Run(); err != nil {
 			return err
 		}
