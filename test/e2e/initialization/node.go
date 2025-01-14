@@ -3,6 +3,7 @@ package initialization
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -37,6 +38,7 @@ import (
 	"github.com/babylonlabs-io/babylon/crypto/bls12381"
 	"github.com/babylonlabs-io/babylon/privval"
 	"github.com/babylonlabs-io/babylon/test/e2e/util"
+	cmtos "github.com/cometbft/cometbft/libs/os"
 	cmtprivval "github.com/cometbft/cometbft/privval"
 )
 
@@ -207,6 +209,34 @@ func (n *internalNode) createConsensusKey() error {
 		CometPVKey: filePV.Key,
 		BlsPVKey:   blsPV.Key,
 	}
+
+	// ======= TESTING START =======
+	log.Print("==> createConsensusKey()")
+	if cmtos.FileExists(pvKeyFile) {
+		log.Print("=> file exists: pvKeyFile: ", pvKeyFile)
+	} else {
+		log.Print("=> file does not exist: pvKeyFile: ", pvKeyFile)
+	}
+
+	if cmtos.FileExists(blsPasswordFile) {
+		log.Print("=> file exists: blsPasswordFile: ", blsPasswordFile)
+	} else {
+		log.Print("=> file does not exist: blsPasswordFile: ", blsPasswordFile)
+	}
+
+	if cmtos.FileExists(blsKeyFile) {
+		log.Print("=> file exists: blsKeyFile: ", blsKeyFile)
+	} else {
+		log.Print("=> file does not exist: blsKeyFile: ", blsKeyFile)
+	}
+
+	if cmtos.FileExists(blsPasswordFile) {
+		log.Print("=> file exists: blsPasswordFile: ", blsPasswordFile)
+	} else {
+		log.Print("=> file does not exist: blsPasswordFile: ", blsPasswordFile)
+	}
+	// ======= TESTING END =======
+
 	return nil
 }
 
