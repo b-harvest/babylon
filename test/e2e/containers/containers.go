@@ -288,7 +288,7 @@ func (m *Manager) RunNodeResource(chainId string, containerName, valCondifDir st
 	// }
 	// ======= TESTING END =======
 
-	// ======= CREATE KEY DIRECTLY START =======
+	// ======= CREATE KEY DIRECTLY =======
 	cmtKeyFile := filepath.Join(valCondifDir, cmtcfg.DefaultConfig().PrivValidatorKeyFile())
 	cmtStateFile := filepath.Join(valCondifDir, cmtcfg.DefaultConfig().PrivValidatorStateFile())
 	blsKeyFile := filepath.Join(valCondifDir, privval.DefaultBlsConfig().BlsKeyFile())
@@ -307,9 +307,9 @@ func (m *Manager) RunNodeResource(chainId string, containerName, valCondifDir st
 	filePV.Key.Save()
 	filePV.LastSignState.Save()
 
-	blsPV := privval.GenBlsPV(blsKeyFile, blsPasswordFile, "password", "")
-	blsPV.Key.Save("password", "")
-	// ======= CREATE KEY DIRECTLY END =======
+	privval.GenBlsPV(blsKeyFile, blsPasswordFile, "password", "")
+
+	// ======= CREATE KEY DIRECTLY =======
 
 	runOpts := &dockertest.RunOptions{
 		Name:       containerName,
