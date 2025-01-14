@@ -299,10 +299,19 @@ func (m *Manager) RunNodeResource(chainId string, containerName, valCondifDir st
 	log.Print("=> blsKeyFile: ", blsKeyFile)
 	log.Print("=> blsPasswordFile: ", blsPasswordFile)
 
+	// Remove existing files if they exist
+	for _, file := range []string{cmtKeyFile, cmtStateFile, blsKeyFile, blsPasswordFile} {
+		if err := os.RemoveAll(file); err != nil {
+			log.Printf("Failed to remove file %s: %v", file, err)
+			return nil, err
+		}
+	}
+
 	if err := privval.IsValidFilePath(cmtKeyFile, cmtStateFile, blsKeyFile, blsPasswordFile); err != nil {
 		return nil, err
 	}
 
+	// Generate new keys
 	filePV := cmtprivval.GenFilePV(cmtKeyFile, cmtStateFile)
 	filePV.Key.Save()
 	filePV.LastSignState.Save()
