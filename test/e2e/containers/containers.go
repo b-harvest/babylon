@@ -15,6 +15,7 @@ import (
 
 	"github.com/babylonlabs-io/babylon/privval"
 	cmtcfg "github.com/cometbft/cometbft/config"
+	cmtos "github.com/cometbft/cometbft/libs/os"
 	cmtprivval "github.com/cometbft/cometbft/privval"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
@@ -271,21 +272,6 @@ func (m *Manager) RunNodeResource(chainId string, containerName, valCondifDir st
 	// ======= TESTING START =======
 	log.Print("==> RunNodeResource()")
 	log.Print("=> valCondifDir: ", valCondifDir)
-
-	// blsKeyFile := filepath.Join(valCondifDir, privval.DefaultBlsConfig().BlsKeyFile())
-	// blsPasswordFile := filepath.Join(valCondifDir, privval.DefaultBlsConfig().BlsPasswordFile())
-	// if cmtos.FileExists(blsKeyFile) {
-	// 	log.Print("=> file exists: blsPasswordFile: ", blsPasswordFile)
-
-	// 	passwd, err := erc2335.LoadPaswordFromFile(blsPasswordFile)
-	// 	if err != nil {
-	// 		log.Print("=> failed to load password: ", err.Error())
-	// 		return nil, err
-	// 	}
-	// 	log.Print("=> loaded password: ", passwd)
-	// } else {
-	// 	log.Print("=> file not exists: blsPasswordFile: ", blsPasswordFile)
-	// }
 	// ======= TESTING END =======
 
 	// ======= CREATE KEY DIRECTLY =======
@@ -299,24 +285,23 @@ func (m *Manager) RunNodeResource(chainId string, containerName, valCondifDir st
 	log.Print("=> blsKeyFile: ", blsKeyFile)
 	log.Print("=> blsPasswordFile: ", blsPasswordFile)
 
-	// Remove existing files if they exist
-	for _, file := range []string{cmtKeyFile, cmtStateFile, blsKeyFile, blsPasswordFile} {
-		if err := os.RemoveAll(file); err != nil {
-			log.Printf("Failed to remove file %s: %v", file, err)
+	if !cmtos.FileExists(cmtKeyFile) {
+		if err := privval.IsValidFilePath(cmtKeyFile, cmtStateFile); err != nil {
 			return nil, err
 		}
+		log.Print("=> file not exists: cmtKeyFile: ", cmtKeyFile)
+		log.Print("=> create new cometPv and save to file")
+		cmtprivval.GenFilePV(cmtKeyFile, cmtStateFile).Save()
 	}
 
-	if err := privval.IsValidFilePath(cmtKeyFile, cmtStateFile, blsKeyFile, blsPasswordFile); err != nil {
-		return nil, err
+	if !cmtos.FileExists(blsKeyFile) {
+		if err := privval.IsValidFilePath(blsKeyFile, blsPasswordFile); err != nil {
+			return nil, err
+		}
+		log.Print("=> file not exists: blsKeyFile: ", blsKeyFile)
+		log.Print("=> create new blsPv and save to file")
+		privval.GenBlsPV(blsKeyFile, blsPasswordFile, "password", "")
 	}
-
-	// Generate new keys
-	filePV := cmtprivval.GenFilePV(cmtKeyFile, cmtStateFile)
-	filePV.Key.Save()
-	filePV.LastSignState.Save()
-
-	privval.GenBlsPV(blsKeyFile, blsPasswordFile, "password", "")
 
 	// ======= CREATE KEY DIRECTLY =======
 
