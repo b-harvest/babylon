@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/babylonlabs-io/babylon/crypto/erc2335"
 	"github.com/babylonlabs-io/babylon/privval"
-	cmtos "github.com/cometbft/cometbft/libs/os"
+	cmtcfg "github.com/cometbft/cometbft/config"
+	cmtprivval "github.com/cometbft/cometbft/privval"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
@@ -272,21 +272,44 @@ func (m *Manager) RunNodeResource(chainId string, containerName, valCondifDir st
 	log.Print("==> RunNodeResource()")
 	log.Print("=> valCondifDir: ", valCondifDir)
 
+	// blsKeyFile := filepath.Join(valCondifDir, privval.DefaultBlsConfig().BlsKeyFile())
+	// blsPasswordFile := filepath.Join(valCondifDir, privval.DefaultBlsConfig().BlsPasswordFile())
+	// if cmtos.FileExists(blsKeyFile) {
+	// 	log.Print("=> file exists: blsPasswordFile: ", blsPasswordFile)
+
+	// 	passwd, err := erc2335.LoadPaswordFromFile(blsPasswordFile)
+	// 	if err != nil {
+	// 		log.Print("=> failed to load password: ", err.Error())
+	// 		return nil, err
+	// 	}
+	// 	log.Print("=> loaded password: ", passwd)
+	// } else {
+	// 	log.Print("=> file not exists: blsPasswordFile: ", blsPasswordFile)
+	// }
+	// ======= TESTING END =======
+
+	// ======= CREATE KEY DIRECTLY START =======
+	cmtKeyFile := filepath.Join(valCondifDir, cmtcfg.DefaultConfig().PrivValidatorKeyFile())
+	cmtStateFile := filepath.Join(valCondifDir, cmtcfg.DefaultConfig().PrivValidatorStateFile())
 	blsKeyFile := filepath.Join(valCondifDir, privval.DefaultBlsConfig().BlsKeyFile())
 	blsPasswordFile := filepath.Join(valCondifDir, privval.DefaultBlsConfig().BlsPasswordFile())
-	if cmtos.FileExists(blsKeyFile) {
-		log.Print("=> file exists: blsPasswordFile: ", blsPasswordFile)
 
-		passwd, err := erc2335.LoadPaswordFromFile(blsPasswordFile)
-		if err != nil {
-			log.Print("=> failed to load password: ", err.Error())
-			return nil, err
-		}
-		log.Print("=> loaded password: ", passwd)
-	} else {
-		log.Print("=> file not exists: blsPasswordFile: ", blsPasswordFile)
+	log.Print("=> cmtKeyFile: ", cmtKeyFile)
+	log.Print("=> cmtStateFile: ", cmtStateFile)
+	log.Print("=> blsKeyFile: ", blsKeyFile)
+	log.Print("=> blsPasswordFile: ", blsPasswordFile)
+
+	if err := privval.IsValidFilePath(cmtKeyFile, cmtStateFile, blsKeyFile, blsPasswordFile); err != nil {
+		return nil, err
 	}
-	// ======= TESTING END =======
+
+	filePV := cmtprivval.GenFilePV(cmtKeyFile, cmtStateFile)
+	filePV.Key.Save()
+	filePV.LastSignState.Save()
+
+	blsPV := privval.GenBlsPV(blsKeyFile, blsPasswordFile, "password", "")
+	blsPV.Key.Save("password", "")
+	// ======= CREATE KEY DIRECTLY END =======
 
 	runOpts := &dockertest.RunOptions{
 		Name:       containerName,
