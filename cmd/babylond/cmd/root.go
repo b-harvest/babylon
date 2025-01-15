@@ -2,13 +2,13 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 
 	confixcmd "cosmossdk.io/tools/confix/cmd"
 	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
-	"github.com/babylonlabs-io/babylon/app/signer"
 	cmtcfg "github.com/cometbft/cometbft/config"
 	cmtcli "github.com/cometbft/cometbft/libs/cli"
 	dbm "github.com/cosmos/cosmos-db"
@@ -20,6 +20,8 @@ import (
 	authtxconfig "github.com/cosmos/cosmos-sdk/x/auth/tx/config"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
+
+	"github.com/babylonlabs-io/babylon/app/signer"
 
 	"cosmossdk.io/log"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -262,6 +264,8 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, appOpts serverty
 		skipUpgradeHeights[int64(h)] = true
 	}
 
+	fmt.Println("newApp")
+	
 	homeDir := cast.ToString(appOpts.Get(flags.FlagHome))
 	privSigner, err := signer.InitPrivSigner(homeDir)
 	if err != nil {

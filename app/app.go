@@ -207,6 +207,7 @@ func NewBabylonApp(
 	loadLatest bool,
 	skipUpgradeHeights map[int64]bool,
 	invCheckPeriod uint,
+	// TODO: privSigner could be initialize on preblocker field, no longer required when creating an app and can be removed.
 	privSigner *signer.PrivSigner,
 	appOpts servertypes.AppOptions,
 	wasmOpts []wasmkeeper.Option,
@@ -219,6 +220,8 @@ func NewBabylonApp(
 	if homePath == "" {
 		homePath = DefaultNodeHome
 	}
+
+	fmt.Println("NewBabylonApp")
 
 	encCfg := appparams.DefaultEncodingConfig()
 	interfaceRegistry := encCfg.InterfaceRegistry
@@ -498,6 +501,27 @@ func NewBabylonApp(
 
 	app.SetInitChainer(app.InitChainer)
 	app.SetPreBlocker(func(ctx sdk.Context, req *abci.RequestFinalizeBlock) (*sdk.ResponsePreBlock, error) {
+		// TODO: PoC code, not working, need to fix
+		// 1. checking if not set the signer
+		if !app.CheckpointingKeeper.IsBlsSignerSet() {
+			// 2. Get Validator from File PV
+			filePV := signer.GetCometFilePV(homePath)
+			pubkey, err := filePV.GetPubKey()
+			if err != nil {
+				panic(err)
+			}
+			// 3. checking the pubkey of node is validator
+			_, err = app.StakingKeeper.GetValidatorByConsAddr(ctx, sdk.ConsAddress(pubkey.Address()))
+			if err != nil {
+				// 4. if validator call InitPrivSigner to checking key validation, and optionally key generation if not exist
+				privVal, err := signer.InitPrivSigner2(homePath)
+				if err != nil {
+					panic(err)
+				}
+				// 5. Set Bls Signer
+				app.CheckpointingKeeper.SetBlsSigner(privVal.WrappedPV)
+			}
+		}
 		// execute the existing PreBlocker
 		res, err := app.PreBlocker(ctx, req)
 		if err != nil {

@@ -7,11 +7,11 @@ import (
 
 	corestoretypes "cosmossdk.io/core/store"
 
-	txformat "github.com/babylonlabs-io/babylon/btctxformatter"
-
 	"cosmossdk.io/log"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	txformat "github.com/babylonlabs-io/babylon/btctxformatter"
 
 	cmtprotocrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 
@@ -27,6 +27,8 @@ type (
 		blsSigner      BlsSigner
 		epochingKeeper types.EpochingKeeper
 		hooks          types.CheckpointingHooks
+		// TODO: temporary poc field to checking blsSigner init or not
+		sealed bool
 	}
 )
 
@@ -47,6 +49,16 @@ func NewKeeper(
 
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
+}
+
+func (k *Keeper) SetBlsSigner(blsSigner BlsSigner) {
+	// TODO: seal check
+	k.blsSigner = blsSigner
+	k.sealed = true
+}
+
+func (k *Keeper) IsBlsSignerSet() bool {
+	return k.sealed
 }
 
 // SetHooks sets the validator hooks

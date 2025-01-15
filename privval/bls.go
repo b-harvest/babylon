@@ -7,12 +7,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/babylonlabs-io/babylon/crypto/bls12381"
-	"github.com/babylonlabs-io/babylon/crypto/erc2335"
 	cmtcfg "github.com/cometbft/cometbft/config"
 	cmtos "github.com/cometbft/cometbft/libs/os"
 	"github.com/cometbft/cometbft/libs/tempfile"
 	"github.com/cosmos/cosmos-sdk/client/input"
+
+	"github.com/babylonlabs-io/babylon/crypto/bls12381"
+	"github.com/babylonlabs-io/babylon/crypto/erc2335"
 )
 
 const (

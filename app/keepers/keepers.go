@@ -16,8 +16,6 @@ import (
 	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
-	mintkeeper "github.com/babylonlabs-io/babylon/x/mint/keeper"
-	minttypes "github.com/babylonlabs-io/babylon/x/mint/types"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/runtime"
@@ -58,6 +56,9 @@ import (
 	porttypes "github.com/cosmos/ibc-go/v8/modules/core/05-port/types" // ibc module puts types under `ibchost` rather than `ibctypes`
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
+
+	mintkeeper "github.com/babylonlabs-io/babylon/x/mint/keeper"
+	minttypes "github.com/babylonlabs-io/babylon/x/mint/types"
 
 	appparams "github.com/babylonlabs-io/babylon/app/params"
 	"github.com/babylonlabs-io/babylon/app/signer"
@@ -252,7 +253,9 @@ func (ak *AppKeepers) InitKeepers(
 	checkpointingKeeper := checkpointingkeeper.NewKeeper(
 		appCodec,
 		runtime.NewKVStoreService(keys[checkpointingtypes.StoreKey]),
-		privSigner.WrappedPV,
+		// NOTE: it could be set dynamically by SetBlsSigner
+		nil,
+		//privSigner.WrappedPV,
 		epochingKeeper,
 	)
 
