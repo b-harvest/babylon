@@ -22,18 +22,6 @@ func (k Keeper) SignBLS(epochNum uint64, blockHash types.BlockHash) (bls12381.Si
 	return k.blsSigner.SignMsgWithBls(signBytes)
 }
 
-// func (k Keeper) GetBLSSignerAddress() sdk.ValAddress {
-// 	return k.blsSigner.GetAddress()
-// }
-
-// func (k Keeper) GetValidatorAddress() sdk.ValAddress {
-// 	pk, err := k.blsSigner.GetValidatorPubkey()
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	return sdk.ValAddress(pk.Address())
-// }
-
 func (k Keeper) GetValConsAddress() sdk.ConsAddress {
 	pk, err := k.blsSigner.GetValidatorPubkey()
 	if err != nil {

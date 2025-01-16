@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/babylonlabs-io/babylon/btctxformatter"
+	"github.com/babylonlabs-io/babylon/privval"
 	bbn "github.com/babylonlabs-io/babylon/types"
 	btckckpttypes "github.com/babylonlabs-io/babylon/x/btccheckpoint/types"
 	ckpttypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
@@ -202,6 +203,7 @@ func NewBabylonAppDriver(
 	require.NoError(t, err)
 
 	fmt.Printf("signer val address: %s\n", signerValAddress.String())
+	privval.SetValidatorPubkey(signer.BlsPV.Key.PubKey, signer.CometPV.Key.PubKey)
 
 	appOptions := NewAppOptionsWithFlagHome(chain.Nodes[0].ConfigDir)
 	baseAppOptions := server.DefaultBaseappOptions(appOptions)

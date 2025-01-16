@@ -9,6 +9,7 @@ import (
 	"cosmossdk.io/core/header"
 	"github.com/babylonlabs-io/babylon/app/signer"
 	"github.com/babylonlabs-io/babylon/crypto/bls12381"
+	"github.com/babylonlabs-io/babylon/privval"
 	"github.com/babylonlabs-io/babylon/testutil/datagen"
 	checkpointingtypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -69,6 +70,7 @@ func NewHelperWithValSet(t *testing.T, valSet *datagen.GenesisValidators, privSi
 		Coins:   sdk.NewCoins(sdk.NewCoin(appparams.DefaultBondDenom, sdk.DefaultPowerReduction.MulRaw(10000000))),
 	}
 	GenAccs := []authtypes.GenesisAccount{acc}
+	privval.SetValidatorPubkey(privSigner.BlsPV.Key.PubKey, privSigner.CometPV.Key.PubKey)
 
 	// setup the app and ctx
 	app := app.SetupWithGenesisValSet(t, bbn.BtcSimnet, valSet.GetGenesisKeys(), privSigner, GenAccs, balance)

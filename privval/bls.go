@@ -3,7 +3,6 @@ package privval
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -146,27 +145,27 @@ func (k *BlsPVKey) Save(password string) {
 // ExportGenBls writes a {address, bls_pub_key, pop, and pub_key} into a json file
 func ExportGenBls(valAddress sdk.ValAddress, cmtPrivKey cmtcrypto.PrivKey, blsPrivKey bls12381.PrivateKey, filePath string) (outputFileName string, err error) {
 	if !cmtos.FileExists(filePath) {
-		return outputFileName, errors.New("export file path does not exist")
+		return outputFileName, fmt.Errorf("input file %s does not exists", filePath)
 	}
 
 	validatorKey, err := NewValidatorKeys(cmtPrivKey, blsPrivKey)
 	if err != nil {
-		return outputFileName, err
+		return outputFileName, fmt.Errorf("failed to create validator keys: %w", err)
 	}
 
 	pubkey, err := codec.FromCmtPubKeyInterface(validatorKey.ValPubkey)
 	if err != nil {
-		return outputFileName, err
+		return outputFileName, fmt.Errorf("failed to convert validator public key: %w", err)
 	}
 
 	genbls, err := checkpointingtypes.NewGenesisKey(valAddress, &validatorKey.BlsPubkey, validatorKey.PoP, pubkey)
 	if err != nil {
-		return outputFileName, err
+		return outputFileName, fmt.Errorf("failed to create genesis key: %w", err)
 	}
 
 	jsonBytes, err := cmtjson.MarshalIndent(genbls, "", "  ")
 	if err != nil {
-		return outputFileName, err
+		return outputFileName, fmt.Errorf("failed to marshal genesis key: %w", err)
 	}
 
 	outputFileName = filepath.Join(filePath, fmt.Sprintf("gen-bls-%s.json", valAddress.String()))
@@ -174,10 +173,7 @@ func ExportGenBls(valAddress sdk.ValAddress, cmtPrivKey cmtcrypto.PrivKey, blsPr
 		return outputFileName, fmt.Errorf("failed to write file: %w", err)
 	}
 
-	// add comet pubkey to map using key as bls pubkey
-	mutex.Lock()
-	validatorPubKeymap[string(blsPrivKey.PubKey())] = cmtPrivKey.PubKey()
-	mutex.Unlock()
+	SetValidatorPubkey(blsPrivKey.PubKey(), cmtPrivKey.PubKey())
 
 	return outputFileName, nil
 }
@@ -213,4 +209,11 @@ func (pv *BlsPV) GetBlsPubkey() (bls12381.PublicKey, error) {
 // GetValidatorPubkey returns the public key of the validator
 func (pv *BlsPV) GetValidatorPubkey() (cmtcrypto.PubKey, error) {
 	return validatorPubKeymap[string(pv.Key.PrivKey.PubKey())], nil
+}
+
+func SetValidatorPubkey(blsPubKey bls12381.PublicKey, cmtPubKey cmtcrypto.PubKey) {
+	// add comet pubkey to map using key as bls pubkey
+	mutex.Lock()
+	validatorPubKeymap[string(blsPubKey)] = cmtPubKey
+	mutex.Unlock()
 }
