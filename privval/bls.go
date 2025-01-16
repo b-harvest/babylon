@@ -3,16 +3,23 @@ package privval
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/babylonlabs-io/babylon/crypto/bls12381"
 	"github.com/babylonlabs-io/babylon/crypto/erc2335"
+	checkpointingtypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
 	cmtcfg "github.com/cometbft/cometbft/config"
+	cmtcrypto "github.com/cometbft/cometbft/crypto"
+	cmtjson "github.com/cometbft/cometbft/libs/json"
 	cmtos "github.com/cometbft/cometbft/libs/os"
 	"github.com/cometbft/cometbft/libs/tempfile"
 	"github.com/cosmos/cosmos-sdk/client/input"
+	"github.com/cosmos/cosmos-sdk/crypto/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const (
@@ -23,6 +30,8 @@ const (
 var (
 	defaultBlsKeyFilePath  = filepath.Join(cmtcfg.DefaultConfigDir, DefaultBlsKeyName)      // Default file path for BLS key
 	defaultBlsPasswordPath = filepath.Join(cmtcfg.DefaultConfigDir, DefaultBlsPasswordName) // Default file path for BLS password
+	validatorPubKeymap     = make(map[string]cmtcrypto.PubKey)
+	mutex                  = sync.Mutex{}
 )
 
 // BlsPV is a wrapper around BlsPVKey
@@ -36,30 +45,28 @@ type BlsPV struct {
 // BlsPVKey is a wrapper containing bls12381 keys,
 // paths of both key and password files, and delegator address.
 type BlsPVKey struct {
-	PubKey           bls12381.PublicKey  `json:"bls_pub_key"`       // Public Key of BLS
-	PrivKey          bls12381.PrivateKey `json:"bls_priv_key"`      // Private Key of BLS
-	DelegatorAddress string              `json:"delegator_address"` // Delegate Address
-	filePath         string              // File Path of BLS Key
-	passwordPath     string              // File Path of BLS Password
+	PubKey       bls12381.PublicKey  `json:"bls_pub_key"`  // Public Key of BLS
+	PrivKey      bls12381.PrivateKey `json:"bls_priv_key"` // Private Key of BLS
+	filePath     string              // File Path of BLS Key
+	passwordPath string              // File Path of BLS Password
 }
 
 // NewBlsPV returns a new BlsPV.
-func NewBlsPV(privKey bls12381.PrivateKey, keyFilePath, passwordFilePath, delegatorAddress string) *BlsPV {
+func NewBlsPV(privKey bls12381.PrivateKey, keyFilePath, passwordFilePath string) *BlsPV {
 	return &BlsPV{
 		Key: BlsPVKey{
-			PubKey:           privKey.PubKey(),
-			PrivKey:          privKey,
-			DelegatorAddress: delegatorAddress,
-			filePath:         keyFilePath,
-			passwordPath:     passwordFilePath,
+			PubKey:       privKey.PubKey(),
+			PrivKey:      privKey,
+			filePath:     keyFilePath,
+			passwordPath: passwordFilePath,
 		},
 	}
 }
 
 // GenBlsPV returns a new BlsPV after saving it to the file.
-func GenBlsPV(keyFilePath, passwordFilePath, password, delegatorAddress string) *BlsPV {
-	pv := NewBlsPV(bls12381.GenPrivKey(), keyFilePath, passwordFilePath, delegatorAddress)
-	pv.Key.Save(password, delegatorAddress)
+func GenBlsPV(keyFilePath, passwordFilePath, password string) *BlsPV {
+	pv := NewBlsPV(bls12381.GenPrivKey(), keyFilePath, passwordFilePath)
+	pv.Key.Save(password)
 	return pv
 }
 
@@ -86,11 +93,10 @@ func LoadBlsPV(keyFilePath, passwordFilePath string) *BlsPV {
 	blsPrivKey := bls12381.PrivateKey(privKey)
 	return &BlsPV{
 		Key: BlsPVKey{
-			PubKey:           blsPrivKey.PubKey(),
-			PrivKey:          blsPrivKey,
-			DelegatorAddress: keystore.Description,
-			filePath:         keyFilePath,
-			passwordPath:     passwordFilePath,
+			PubKey:       blsPrivKey.PubKey(),
+			PrivKey:      blsPrivKey,
+			filePath:     keyFilePath,
+			passwordPath: passwordFilePath,
 		},
 	}
 }
@@ -107,7 +113,7 @@ func NewBlsPassword() string {
 
 // Save saves the bls12381 key to the file.
 // The file stores an erc2335 structure containing the encrypted bls private key.
-func (k *BlsPVKey) Save(password, addr string) {
+func (k *BlsPVKey) Save(password string) {
 	// encrypt the bls12381 key to erc2335 type
 	erc2335BlsPvKey, err := erc2335.Encrypt(k.PrivKey, k.PubKey.Bytes(), password)
 	if err != nil {
@@ -119,9 +125,6 @@ func (k *BlsPVKey) Save(password, addr string) {
 	if err := json.Unmarshal(erc2335BlsPvKey, &keystore); err != nil {
 		panic(err)
 	}
-
-	// save the delegator address to description field
-	keystore.Description = addr
 
 	// convert keystore to json
 	jsonBytes, err := json.MarshalIndent(keystore, "", "  ")
@@ -140,6 +143,45 @@ func (k *BlsPVKey) Save(password, addr string) {
 	}
 }
 
+// ExportGenBls writes a {address, bls_pub_key, pop, and pub_key} into a json file
+func ExportGenBls(valAddress sdk.ValAddress, cmtPrivKey cmtcrypto.PrivKey, blsPrivKey bls12381.PrivateKey, filePath string) (outputFileName string, err error) {
+	if !cmtos.FileExists(filePath) {
+		return outputFileName, errors.New("export file path does not exist")
+	}
+
+	validatorKey, err := NewValidatorKeys(cmtPrivKey, blsPrivKey)
+	if err != nil {
+		return outputFileName, err
+	}
+
+	pubkey, err := codec.FromCmtPubKeyInterface(validatorKey.ValPubkey)
+	if err != nil {
+		return outputFileName, err
+	}
+
+	genbls, err := checkpointingtypes.NewGenesisKey(valAddress, &validatorKey.BlsPubkey, validatorKey.PoP, pubkey)
+	if err != nil {
+		return outputFileName, err
+	}
+
+	jsonBytes, err := cmtjson.MarshalIndent(genbls, "", "  ")
+	if err != nil {
+		return outputFileName, err
+	}
+
+	outputFileName = filepath.Join(filePath, fmt.Sprintf("gen-bls-%s.json", valAddress.String()))
+	if err := tempfile.WriteFileAtomic(outputFileName, jsonBytes, 0600); err != nil {
+		return outputFileName, fmt.Errorf("failed to write file: %w", err)
+	}
+
+	// add comet pubkey to map using key as bls pubkey
+	mutex.Lock()
+	validatorPubKeymap[string(blsPrivKey.PubKey())] = cmtPrivKey.PubKey()
+	mutex.Unlock()
+
+	return outputFileName, nil
+}
+
 // DefaultBlsKeyFile returns the default BLS key file path.
 func DefaultBlsKeyFile(home string) string {
 	return filepath.Join(home, defaultBlsKeyFilePath)
@@ -148,4 +190,27 @@ func DefaultBlsKeyFile(home string) string {
 // DefaultBlsPasswordFile returns the default BLS password file path.
 func DefaultBlsPasswordFile(home string) string {
 	return filepath.Join(home, defaultBlsPasswordPath)
+}
+
+// BlsSigner interface
+
+// SignMsgWithBls signs a message with BLS
+func (pv *BlsPV) SignMsgWithBls(msg []byte) (bls12381.Signature, error) {
+	if pv.Key.PrivKey == nil {
+		return nil, fmt.Errorf("BLS private key does not exist: %w", checkpointingtypes.ErrBlsPrivKeyDoesNotExist)
+	}
+	return bls12381.Sign(pv.Key.PrivKey, msg), nil
+}
+
+// GetBlsPubkey returns the public key of the BLS
+func (pv *BlsPV) GetBlsPubkey() (bls12381.PublicKey, error) {
+	if pv.Key.PrivKey == nil {
+		return nil, checkpointingtypes.ErrBlsPrivKeyDoesNotExist
+	}
+	return pv.Key.PrivKey.PubKey(), nil
+}
+
+// GetValidatorPubkey returns the public key of the validator
+func (pv *BlsPV) GetValidatorPubkey() (cmtcrypto.PubKey, error) {
+	return validatorPubKeymap[string(pv.Key.PrivKey.PubKey())], nil
 }
