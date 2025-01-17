@@ -9,7 +9,6 @@ import (
 	"cosmossdk.io/core/header"
 	"github.com/babylonlabs-io/babylon/app/signer"
 	"github.com/babylonlabs-io/babylon/crypto/bls12381"
-	"github.com/babylonlabs-io/babylon/privval"
 	"github.com/babylonlabs-io/babylon/testutil/datagen"
 	checkpointingtypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -60,7 +59,7 @@ func NewHelper(t *testing.T) *Helper {
 // the privSigner is the 0th validator in valSet
 func NewHelperWithValSet(t *testing.T, valSet *datagen.GenesisValidators, privSigner *signer.PrivSigner) *Helper {
 	// generate the genesis account
-	signerPubKey := privSigner.CometPV.Key.PubKey
+	signerPubKey := privSigner.PV.Comet.PubKey
 	acc := authtypes.NewBaseAccount(signerPubKey.Address().Bytes(), &cosmosed.PubKey{Key: signerPubKey.Bytes()}, 0, 0)
 
 	valSet.Keys[0].ValidatorAddress = sdk.ValAddress(acc.GetAddress()).String()
@@ -70,7 +69,6 @@ func NewHelperWithValSet(t *testing.T, valSet *datagen.GenesisValidators, privSi
 		Coins:   sdk.NewCoins(sdk.NewCoin(appparams.DefaultBondDenom, sdk.DefaultPowerReduction.MulRaw(10000000))),
 	}
 	GenAccs := []authtypes.GenesisAccount{acc}
-	privval.SetValidatorPubkey(privSigner.BlsPV.Key.PubKey, privSigner.CometPV.Key.PubKey)
 
 	// setup the app and ctx
 	app := app.SetupWithGenesisValSet(t, bbn.BtcSimnet, valSet.GetGenesisKeys(), privSigner, GenAccs, balance)
@@ -99,7 +97,7 @@ func NewHelperWithValSet(t *testing.T, valSet *datagen.GenesisValidators, privSi
 // included in the validator set
 func NewHelperWithValSetNoSigner(t *testing.T, valSet *datagen.GenesisValidators, privSigner *signer.PrivSigner) *Helper {
 	// generate the genesis account
-	signerPubKey := privSigner.CometPV.Key.PubKey
+	signerPubKey := privSigner.PV.Comet.PubKey
 	acc := authtypes.NewBaseAccount(signerPubKey.Address().Bytes(), &cosmosed.PubKey{Key: signerPubKey.Bytes()}, 0, 0)
 	// set a random validator address instead of the privSigner's
 	valSet.Keys[0].ValidatorAddress = datagen.GenRandomValidatorAddress().String()

@@ -38,8 +38,8 @@ func SetupTestPrivSigner() (*signer.PrivSigner, error) {
 // func GenesisKeyFromPrivSigner(ps *signer.PrivSigner, delegatorAddress sdk.ValAddress) (*checkpointingtypes.GenesisKey, error) {
 func GenesisKeyFromPrivSigner(ps *signer.PrivSigner, delegatorAddress sdk.ValAddress) (*checkpointingtypes.GenesisKey, error) {
 	valKeys, err := privval.NewValidatorKeys(
-		ps.CometPV.Key.PrivKey,
-		ps.BlsPV.Key.PrivKey,
+		ps.PV.Comet.PrivKey,
+		ps.PV.Bls.PrivKey,
 	)
 	if err != nil {
 		return nil, err

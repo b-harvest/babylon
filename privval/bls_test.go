@@ -4,11 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cometbft/cometbft/crypto/ed25519"
-
 	"github.com/babylonlabs-io/babylon/crypto/bls12381"
-	"github.com/cosmos/cosmos-sdk/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/test-go/testify/assert"
 )
 
@@ -52,21 +48,5 @@ func TestNewBlsPV(t *testing.T) {
 			assert.Equal(t, pv.Key.PrivKey, loadedPv.Key.PrivKey)
 			assert.Equal(t, pv.Key.PubKey.Bytes(), loadedPv.Key.PubKey.Bytes())
 		})
-	})
-
-	t.Run("export gen-bls and check validator map", func(t *testing.T) {
-		addr := types.AccAddress(ed25519.GenPrivKey().PubKey().Address())
-		valAddr := sdk.ValAddress(addr)
-
-		cmtPrivKey := ed25519.GenPrivKey()
-		blsPv := NewBlsPV(bls12381.GenPrivKey(), keyFilePath, passwordFilePath)
-
-		_, err := ExportGenBls(valAddr, cmtPrivKey, blsPv.Key.PrivKey, tempDir)
-		assert.NoError(t, err)
-
-		valPubKey, err := blsPv.GetValidatorPubkey()
-		assert.NoError(t, err)
-
-		assert.Equal(t, cmtPrivKey.PubKey(), valPubKey)
 	})
 }

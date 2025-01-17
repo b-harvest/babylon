@@ -10,9 +10,7 @@ import (
 )
 
 type PrivSigner struct {
-	// WrappedPV *privval.WrappedFilePV
-	CometPV *cmtprivval.FilePV
-	BlsPV   *privval.BlsPV
+	PV *privval.WrappedFilePV
 }
 
 func InitPrivSigner(nodeDir string) (*PrivSigner, error) {
@@ -32,7 +30,6 @@ func InitPrivSigner(nodeDir string) (*PrivSigner, error) {
 	blsPV := privval.LoadBlsPV(blsKeyFile, blsPasswordFile)
 
 	return &PrivSigner{
-		CometPV: cometPV,
-		BlsPV:   blsPV,
+		PV: privval.NewWrappedFilePV(cometPV.Key, blsPV.Key),
 	}, nil
 }

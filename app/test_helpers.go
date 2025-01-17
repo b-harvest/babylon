@@ -239,7 +239,7 @@ func SetupWithBitcoinConf(t *testing.T, isCheckTx bool, btcConf bbn.SupportedBtc
 
 	ps, err := signer.SetupTestPrivSigner()
 	require.NoError(t, err)
-	valPubKey := ps.CometPV.Key.PubKey
+	valPubKey := ps.PV.Comet.PubKey
 	// generate genesis account
 	acc := authtypes.NewBaseAccount(
 		valPubKey.Address().Bytes(),
@@ -252,7 +252,6 @@ func SetupWithBitcoinConf(t *testing.T, isCheckTx bool, btcConf bbn.SupportedBtc
 		Coins:   sdk.NewCoins(sdk.NewCoin(appparams.DefaultBondDenom, math.NewInt(100000000000000))),
 	}
 	// create validator set with single validator
-	// genesisKey, err := signer.GenesisKeyFromPrivSigner(ps, sdk.ValAddress(acc.GetAddress()))
 	genesisKey, err := signer.GenesisKeyFromPrivSigner(ps, sdk.ValAddress(acc.GetAddress()))
 	require.NoError(t, err)
 	genesisValSet := []*checkpointingtypes.GenesisKey{genesisKey}

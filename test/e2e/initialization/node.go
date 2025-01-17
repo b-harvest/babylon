@@ -91,7 +91,7 @@ func (n *internalNode) buildCreateValidatorMsg(amount sdk.Coin) (sdk.Msg, error)
 	// get the initial validator min self delegation
 	minSelfDelegation, _ := math.NewIntFromString("1")
 
-	valPubKey, err := cryptocodec.FromCmtPubKeyInterface(n.consensusKey.CometPV.Key.PubKey)
+	valPubKey, err := cryptocodec.FromCmtPubKeyInterface(n.consensusKey.PV.Comet.PubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -187,8 +187,7 @@ func (n *internalNode) createConsensusKey() error {
 	blsPV := privval.GenBlsPV(blsKeyFile, blsPasswordFile, "password")
 
 	n.consensusKey = signer.PrivSigner{
-		CometPV: filePV,
-		BlsPV:   blsPV,
+		PV: privval.NewWrappedFilePV(filePV.Key, blsPV.Key),
 	}
 	return nil
 }

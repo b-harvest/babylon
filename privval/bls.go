@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 
 	"github.com/babylonlabs-io/babylon/crypto/bls12381"
 	"github.com/babylonlabs-io/babylon/crypto/erc2335"
@@ -29,8 +28,6 @@ const (
 var (
 	defaultBlsKeyFilePath  = filepath.Join(cmtcfg.DefaultConfigDir, DefaultBlsKeyName)      // Default file path for BLS key
 	defaultBlsPasswordPath = filepath.Join(cmtcfg.DefaultConfigDir, DefaultBlsPasswordName) // Default file path for BLS password
-	validatorPubKeymap     = make(map[string]cmtcrypto.PubKey)
-	mutex                  = sync.Mutex{}
 )
 
 // BlsPV is a wrapper around BlsPVKey
@@ -172,9 +169,6 @@ func ExportGenBls(valAddress sdk.ValAddress, cmtPrivKey cmtcrypto.PrivKey, blsPr
 	if err := tempfile.WriteFileAtomic(outputFileName, jsonBytes, 0600); err != nil {
 		return outputFileName, fmt.Errorf("failed to write file: %w", err)
 	}
-
-	SetValidatorPubkey(blsPrivKey.PubKey(), cmtPrivKey.PubKey())
-
 	return outputFileName, nil
 }
 
@@ -186,34 +180,4 @@ func DefaultBlsKeyFile(home string) string {
 // DefaultBlsPasswordFile returns the default BLS password file path.
 func DefaultBlsPasswordFile(home string) string {
 	return filepath.Join(home, defaultBlsPasswordPath)
-}
-
-// BlsSigner interface
-
-// SignMsgWithBls signs a message with BLS
-func (pv *BlsPV) SignMsgWithBls(msg []byte) (bls12381.Signature, error) {
-	if pv.Key.PrivKey == nil {
-		return nil, fmt.Errorf("BLS private key does not exist: %w", checkpointingtypes.ErrBlsPrivKeyDoesNotExist)
-	}
-	return bls12381.Sign(pv.Key.PrivKey, msg), nil
-}
-
-// GetBlsPubkey returns the public key of the BLS
-func (pv *BlsPV) GetBlsPubkey() (bls12381.PublicKey, error) {
-	if pv.Key.PrivKey == nil {
-		return nil, checkpointingtypes.ErrBlsPrivKeyDoesNotExist
-	}
-	return pv.Key.PrivKey.PubKey(), nil
-}
-
-// GetValidatorPubkey returns the public key of the validator
-func (pv *BlsPV) GetValidatorPubkey() (cmtcrypto.PubKey, error) {
-	return validatorPubKeymap[string(pv.Key.PrivKey.PubKey())], nil
-}
-
-func SetValidatorPubkey(blsPubKey bls12381.PublicKey, cmtPubKey cmtcrypto.PubKey) {
-	// add comet pubkey to map using key as bls pubkey
-	mutex.Lock()
-	validatorPubKeymap[string(blsPubKey)] = cmtPubKey
-	mutex.Unlock()
 }
