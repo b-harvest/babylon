@@ -10,10 +10,6 @@ import (
 	"github.com/babylonlabs-io/babylon/privval"
 )
 
-const (
-	FlagPassword = "bls-password"
-)
-
 func CreateBlsKeyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create-bls-key",
@@ -31,25 +27,24 @@ $ babylond create-bls-key --home ./
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			homeDir, _ := cmd.Flags().GetString(flags.FlagHome)
-
-			var password string
-			password, _ = cmd.Flags().GetString(FlagPassword)
-			if password == "" {
-				password = privval.NewBlsPassword()
-			}
+			password, _ := cmd.Flags().GetString(flagBlsPassword)
 			return CreateBlsKey(homeDir, password)
 		},
 	}
 
 	cmd.Flags().String(flags.FlagHome, app.DefaultNodeHome, "The node home directory")
-	cmd.Flags().String(FlagPassword, "", "The password for the BLS key. If a flag is set, the non-empty password should be provided. If a flag is not set, the password will be read from the prompt.")
+	cmd.Flags().String(flagBlsPassword, "", "The password for the BLS key. If a flag is set, the non-empty password should be provided. If a flag is not set, the password will be read from the prompt.")
 	return cmd
 }
 
-func CreateBlsKey(home, password string) error {
+func CreateBlsKey(homeDir, password string) error {
+	if password == "" {
+		password = privval.NewBlsPassword()
+	}
+
 	privval.GenBlsPV(
-		privval.DefaultBlsKeyFile(home),
-		privval.DefaultBlsPasswordFile(home),
+		privval.DefaultBlsKeyFile(homeDir),
+		privval.DefaultBlsPasswordFile(homeDir),
 		password,
 	)
 	return nil
