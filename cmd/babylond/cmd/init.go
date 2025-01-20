@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/babylonlabs-io/babylon/crypto/bls12381"
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -22,7 +23,8 @@ func InitCmd(mbm module.BasicManager, defaultNodeHome string) *cobra.Command {
 
 			homeDir, _ := cmd.Flags().GetString(flags.FlagHome)
 			password, _ := cmd.Flags().GetString(flagBlsPassword)
-			return CreateBlsKey(homeDir, password)
+			CreateBlsKey(bls12381.GenPrivKey(), homeDir, password)
+			return nil
 		},
 	}
 	cmd.Flags().AddFlagSet(cosmosInitCmd.Flags())
