@@ -22,8 +22,14 @@ func (k Keeper) SignBLS(epochNum uint64, blockHash types.BlockHash) (bls12381.Si
 	return k.blsSigner.SignMsgWithBls(signBytes)
 }
 
-// GetValConsAddress returns the validator consensus address
-func (k Keeper) GetValConsAddress() sdk.ConsAddress {
+// GetConAddressFromPubkey returns the consensus address
+func (k Keeper) GetConAddressFromPubkey() sdk.ConsAddress {
 	pk := k.blsSigner.GetValidatorPubkey()
 	return sdk.ConsAddress(pk.Address())
+}
+
+// GetValAddressFromPubkey returns the validator address
+func (k Keeper) GetValAddressFromPubkey() sdk.ValAddress {
+	pk := k.blsSigner.GetValidatorPubkey()
+	return sdk.ValAddress(pk.Address())
 }
