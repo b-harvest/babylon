@@ -68,7 +68,7 @@ func migrate(homeDir, password string) error {
 
 	pv, err := loadPrevWrappedFilePV(filepath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to load priv_validator_key.json of previous version: %w", err)
 	}
 
 	prevCmtPrivKey := pv.PrivKey
