@@ -118,3 +118,33 @@ func TestLoadPrevWrappedFilePV(t *testing.T) {
 		require.NotNil(t, loadedPvKey.BlsPrivKey)
 	})
 }
+
+func TestVerifyAfterMigration(t *testing.T) {
+	t.Run("matching keys", func(t *testing.T) {
+		cmtKey := ed25519.GenPrivKey()
+		blsKey := bls12381.GenPrivKey()
+
+		err := verifyAfterMigration(cmtKey, cmtKey, blsKey, blsKey)
+		require.NoError(t, err)
+	})
+
+	t.Run("non-matching comet keys", func(t *testing.T) {
+		cmtKey1 := ed25519.GenPrivKey()
+		cmtKey2 := ed25519.GenPrivKey()
+		blsKey := bls12381.GenPrivKey()
+
+		err := verifyAfterMigration(cmtKey1, cmtKey2, blsKey, blsKey)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "migrated keys do not match")
+	})
+
+	t.Run("non-matching bls keys", func(t *testing.T) {
+		cmtKey := ed25519.GenPrivKey()
+		blsKey1 := bls12381.GenPrivKey()
+		blsKey2 := bls12381.GenPrivKey()
+
+		err := verifyAfterMigration(cmtKey, cmtKey, blsKey1, blsKey2)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "migrated keys do not match")
+	})
+}

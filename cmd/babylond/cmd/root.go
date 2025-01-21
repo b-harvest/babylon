@@ -178,7 +178,7 @@ func initRootCmd(rootCmd *cobra.Command, txConfig client.TxEncodingConfig, basic
 		TestnetCmd(basicManager, banktypes.GenesisBalancesIterator{}),
 		genhelpers.CmdGenHelpers(gentxModule.GenTxValidator),
 		CreateBlsKeyCmd(),
-		MigrateCmd(),
+		MigrateBlsKeyCmd(),
 		ModuleSizeCmd(),
 		DebugCmd(),
 		confixcmd.ConfigCommand(),

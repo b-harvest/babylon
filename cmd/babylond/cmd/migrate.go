@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
@@ -22,9 +23,9 @@ type PrevWrappedFilePV struct {
 	BlsPrivKey bls12381.PrivateKey `json:"bls_priv_key"`
 }
 
-func MigrateCmd() *cobra.Command {
+func MigrateBlsKeyCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "migrate",
+		Use:   "migrate-bls-key",
 		Short: "Migrate the contents of the priv_validator_key.json file into separate files of bls and comet",
 		Long: strings.TrimSpace(`migrate splits the contents of the priv_validator_key.json file, 
 		which contained both the bls and comet keys used in previous versions, into separate files.
@@ -32,8 +33,11 @@ func MigrateCmd() *cobra.Command {
 BLS keys are stored along with other validator keys in priv_validator_key.json in previous version,
 which should exist before running the command (via babylond init or babylond testnet).
 
+NOTE: Before proceeding with the migration, ensure you back up the priv_validator_key.json file to a secure location.
+This will help prevent potential loss of critical validator information in case of issues during the migration process.
+
 Example:
-$ babylond migrate --home ./
+$ babylond migrate-bls-key --home ./
 `,
 		),
 
@@ -66,15 +70,25 @@ func migrate(homeDir, password string) error {
 		return err
 	}
 
-	cmtPrivKey := pv.PrivKey
-	blsPrivKey := pv.BlsPrivKey
+	prevCmtPrivKey := pv.PrivKey
+	prevBlsPrivKey := pv.BlsPrivKey
 
-	if cmtPrivKey == nil || blsPrivKey == nil {
+	if prevCmtPrivKey == nil || prevBlsPrivKey == nil {
 		return fmt.Errorf("priv_validator_key.json of previous version does not contain both the comet and bls keys")
 	}
 
-	cmtprivval.NewFilePV(cmtPrivKey, cmtcfg.PrivValidatorKeyFile(), cmtcfg.PrivValidatorStateFile()).Key.Save()
-	CreateBlsKey(blsPrivKey, homeDir, password)
+	cmtPv := cmtprivval.NewFilePV(prevCmtPrivKey, cmtcfg.PrivValidatorKeyFile(), cmtcfg.PrivValidatorStateFile())
+	cmtPv.Key.Save()
+	blsPv := createBlsKey(prevBlsPrivKey, homeDir, password)
+
+	if err := verifyAfterMigration(
+		prevCmtPrivKey,
+		cmtPv.Key.PrivKey,
+		prevBlsPrivKey,
+		blsPv.Key.PrivKey,
+	); err != nil {
+		return fmt.Errorf("failed to verify after migration: %w", err)
+	}
 	return nil
 }
 
@@ -90,4 +104,12 @@ func loadPrevWrappedFilePV(filePath string) (*PrevWrappedFilePV, error) {
 		return nil, fmt.Errorf("Error reading PrivValidator key from %v: %v\n", filePath, err)
 	}
 	return &pvKey, nil
+}
+
+// verifyAfterMigration checks if the migrated keys match
+func verifyAfterMigration(prevCmtPrivKey, newCmtPrivKey cmtcrypto.PrivKey, prevBlsPrivKey, newBlsPrivKey bls12381.PrivateKey) error {
+	if bytes.Equal(prevCmtPrivKey.Bytes(), newCmtPrivKey.Bytes()) && bytes.Equal(prevBlsPrivKey, newBlsPrivKey) {
+		return nil
+	}
+	return fmt.Errorf("migrated keys do not match")
 }

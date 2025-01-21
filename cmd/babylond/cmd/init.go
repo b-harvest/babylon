@@ -23,7 +23,7 @@ func InitCmd(mbm module.BasicManager, defaultNodeHome string) *cobra.Command {
 
 			homeDir, _ := cmd.Flags().GetString(flags.FlagHome)
 			password, _ := cmd.Flags().GetString(flagBlsPassword)
-			CreateBlsKey(bls12381.GenPrivKey(), homeDir, password)
+			createBlsKey(bls12381.GenPrivKey(), homeDir, password)
 			return nil
 		},
 	}
