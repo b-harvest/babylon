@@ -9,7 +9,6 @@ import (
 	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	"github.com/babylonlabs-io/babylon/app/signer"
-	testsigner "github.com/babylonlabs-io/babylon/testutil/signer"
 	cmtcfg "github.com/cometbft/cometbft/config"
 	cmtcli "github.com/cometbft/cometbft/libs/cli"
 	dbm "github.com/cosmos/cosmos-db"
@@ -272,13 +271,11 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, appOpts serverty
 	isTestMode := cast.ToBool(appOpts.Get("test"))
 	if isTestMode {
 		oslog.Println(
-			"NOTE: In test mode, it will automatically create the key file " +
-				"when there are no key files since babylond init or babylond create-bls-key " +
-				"command was never executed. " +
+			"NOTE: In this mode, it will automatically migrate the key file for testing. " +
 				"Do not run it in a production environment, as it may cause problems.",
 		)
-		if err := testsigner.GeneratePrivSigner(homeDir); err != nil {
-			panic(err)
+		if err := migrate(homeDir, "password"); err != nil {
+			oslog.Println(err)
 		}
 	}
 
