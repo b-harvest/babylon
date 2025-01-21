@@ -9,6 +9,7 @@ import (
 	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	"github.com/babylonlabs-io/babylon/app/signer"
+	testsigner "github.com/babylonlabs-io/babylon/testutil/signer"
 	cmtcfg "github.com/cometbft/cometbft/config"
 	cmtcli "github.com/cometbft/cometbft/libs/cli"
 	dbm "github.com/cosmos/cosmos-db"
@@ -38,6 +39,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
+
+	oslog "log"
 
 	"github.com/babylonlabs-io/babylon/app"
 	"github.com/babylonlabs-io/babylon/app/params"
@@ -201,6 +204,7 @@ func addModuleInitFlags(startCmd *cobra.Command) {
 
 	startCmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|kwallet|pass|test)")
 	startCmd.Flags().String(flags.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
+	startCmd.Flags().Bool("test", false, "Start node in test mode")
 }
 
 func queryCommand() *cobra.Command {
@@ -264,6 +268,20 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, appOpts serverty
 	}
 
 	homeDir := cast.ToString(appOpts.Get(flags.FlagHome))
+
+	isTestMode := cast.ToBool(appOpts.Get("test"))
+	if isTestMode {
+		oslog.Println(
+			"NOTE: In test mode, it will automatically create the key file " +
+				"when there are no key files since babylond init or babylond create-bls-key " +
+				"command was never executed. " +
+				"Do not run it in a production environment, as it may cause problems.",
+		)
+		if err := testsigner.GeneratePrivSigner(homeDir); err != nil {
+			panic(err)
+		}
+	}
+
 	privSigner, err := signer.InitPrivSigner(homeDir)
 	if err != nil {
 		panic(err)

@@ -56,14 +56,14 @@ func GenesisKeyFromPrivSigner(ps *signer.PrivSigner, delegatorAddress sdk.ValAdd
 	)
 }
 
-func GeneratePrivSigner(nodeDir string) error {
+func GeneratePrivSigner(homeDir string) error {
 	nodeCfg := cmtconfig.DefaultConfig()
-	nodeCfg.SetRoot(nodeDir)
+	nodeCfg.SetRoot(homeDir)
 
 	cmtKeyFile := nodeCfg.PrivValidatorKeyFile()
 	cmtStateFile := nodeCfg.PrivValidatorStateFile()
-	blsKeyFile := privval.DefaultBlsKeyFile(nodeDir)
-	blsPasswordFile := privval.DefaultBlsPasswordFile(nodeDir)
+	blsKeyFile := privval.DefaultBlsKeyFile(homeDir)
+	blsPasswordFile := privval.DefaultBlsPasswordFile(homeDir)
 
 	if err := privval.EnsureDirs(cmtKeyFile, cmtStateFile, blsKeyFile, blsPasswordFile); err != nil {
 		return fmt.Errorf("failed to ensure dirs: %w", err)
