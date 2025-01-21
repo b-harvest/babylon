@@ -357,7 +357,8 @@ func generateTestFiles(nodeDir string) error {
 	}
 
 	if !cmtos.FileExists(pvKeyFile) {
-		cmtprivval.GenFilePV(pvKeyFile, pvStateFile)
+		pv := cmtprivval.GenFilePV(pvKeyFile, pvStateFile)
+		pv.Save()
 	}
 
 	if !cmtos.FileExists(blsKeyFile) {
