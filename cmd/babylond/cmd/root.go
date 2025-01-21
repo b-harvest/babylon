@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 
@@ -9,8 +10,11 @@ import (
 	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	"github.com/babylonlabs-io/babylon/app/signer"
+	"github.com/babylonlabs-io/babylon/privval"
 	cmtcfg "github.com/cometbft/cometbft/config"
+	cmtconfig "github.com/cometbft/cometbft/config"
 	cmtcli "github.com/cometbft/cometbft/libs/cli"
+	cmtos "github.com/cometbft/cometbft/libs/os"
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/client/config"
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -39,9 +43,12 @@ import (
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
 
+	oslog "log"
+
 	"github.com/babylonlabs-io/babylon/app"
 	"github.com/babylonlabs-io/babylon/app/params"
 	"github.com/babylonlabs-io/babylon/cmd/babylond/cmd/genhelpers"
+	cmtprivval "github.com/cometbft/cometbft/privval"
 )
 
 // NewRootCmd creates a new root command for babylond. It is called once in the
@@ -266,19 +273,18 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, appOpts serverty
 
 	homeDir := cast.ToString(appOpts.Get(flags.FlagHome))
 
-	// isTestMode := cast.ToBool(appOpts.Get("test"))
-	// if isTestMode {
-	// 	oslog.Println(
-	// 		"NOTE: In this mode, it will automatically migrate the key file for testing. " +
-	// 			"Do not run it in a production environment, as it may cause problems.",
-	// 	)
-	// 	if err := migrate(homeDir, "password"); err != nil {
-	// 		oslog.Println(err)
-	// 	}
-	// }
-	// if err := migrate(homeDir, "password"); err != nil {
-	// 	oslog.Println(err)
-	// }
+	isTestMode := cast.ToBool(appOpts.Get("test"))
+	if isTestMode {
+		oslog.Println(
+			"***************************************************************************/n" +
+				"NOTE: In test mode, it will automatically migrate the key file for testing./n" +
+				"Do not run it in a production environment, as it may cause problems./n" +
+				"***************************************************************************/n",
+		)
+		if err := generateTestFiles(homeDir); err != nil {
+			panic(err)
+		}
+	}
 
 	privSigner, err := signer.InitPrivSigner(homeDir)
 	if err != nil {
@@ -333,4 +339,29 @@ func appExport(
 	}
 
 	return babylonApp.ExportAppStateAndValidators(forZeroHeight, jailAllowedAddrs, modulesToExport)
+}
+
+// generateTestFiles creates key files for testing
+// exactly in e2e test (upgrade)
+func generateTestFiles(nodeDir string) error {
+	nodeCfg := cmtconfig.DefaultConfig()
+	nodeCfg.SetRoot(nodeDir)
+
+	pvKeyFile := nodeCfg.PrivValidatorKeyFile()
+	pvStateFile := nodeCfg.PrivValidatorStateFile()
+	blsKeyFile := privval.DefaultBlsKeyFile(nodeDir)
+	blsPasswordFile := privval.DefaultBlsPasswordFile(nodeDir)
+
+	if err := privval.EnsureDirs(pvKeyFile, pvStateFile, blsKeyFile, blsPasswordFile); err != nil {
+		return fmt.Errorf("failed to ensure dirs: %w", err)
+	}
+
+	if !cmtos.FileExists(pvKeyFile) {
+		cmtprivval.GenFilePV(pvKeyFile, pvStateFile)
+	}
+
+	if !cmtos.FileExists(blsKeyFile) {
+		privval.GenBlsPV(blsKeyFile, blsPasswordFile, "password")
+	}
+	return nil
 }
