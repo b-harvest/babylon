@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/babylonlabs-io/babylon/app"
-	"github.com/babylonlabs-io/babylon/crypto/bls12381"
 	"github.com/babylonlabs-io/babylon/privval"
 )
 
@@ -29,7 +28,7 @@ $ babylond create-bls-key --home ./
 		RunE: func(cmd *cobra.Command, args []string) error {
 			homeDir, _ := cmd.Flags().GetString(flags.FlagHome)
 			password, _ := cmd.Flags().GetString(flagBlsPassword)
-			createBlsKey(bls12381.GenPrivKey(), homeDir, password)
+			createBlsKeyAndSave(homeDir, password)
 			return nil
 		},
 	}
@@ -39,11 +38,10 @@ $ babylond create-bls-key --home ./
 	return cmd
 }
 
-func createBlsKey(privKey bls12381.PrivateKey, homeDir, password string) *privval.BlsPV {
+// createBlsKeyAndSave creates a pair of BLS keys and saves them to files
+func createBlsKeyAndSave(homeDir, password string) {
 	if password == "" {
 		password = privval.NewBlsPassword()
 	}
-	pv := privval.NewBlsPV(privKey, privval.DefaultBlsKeyFile(homeDir), privval.DefaultBlsPasswordFile(homeDir))
-	pv.Key.Save(password)
-	return pv
+	privval.GenBlsPV(privval.DefaultBlsKeyFile(homeDir), privval.DefaultBlsPasswordFile(homeDir), password)
 }

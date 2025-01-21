@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	"github.com/babylonlabs-io/babylon/crypto/bls12381"
+	"github.com/babylonlabs-io/babylon/privval"
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
+	cmtprivval "github.com/cometbft/cometbft/privval"
 	"github.com/stretchr/testify/require"
 )
 
@@ -61,6 +63,10 @@ func TestMigrate(t *testing.T) {
 		err := os.MkdirAll(configDir, 0755)
 		require.NoError(t, err)
 
+		dataDir := filepath.Join(tempDir, "data")
+		err = os.MkdirAll(dataDir, 0755)
+		require.NoError(t, err)
+
 		pvKeyFile := filepath.Join(configDir, "priv_validator_key.json")
 		pvKey := PrevWrappedFilePV{
 			PrivKey:    ed25519.GenPrivKey(),
@@ -78,9 +84,25 @@ func TestMigrate(t *testing.T) {
 
 		// Check if new files are created
 		newPvKeyFile := filepath.Join(configDir, "priv_validator_key.json")
+		newPvStateFile := filepath.Join(dataDir, "priv_validator_state.json")
 		newBlsKeyFile := filepath.Join(configDir, "bls_key.json")
+		newBlsPasswordFile := filepath.Join(configDir, "bls_password.txt")
 		require.FileExists(t, newPvKeyFile)
+		require.FileExists(t, newPvStateFile)
 		require.FileExists(t, newBlsKeyFile)
+		require.FileExists(t, newBlsPasswordFile)
+
+		t.Run("verify after migration", func(t *testing.T) {
+			newCmtPv := cmtprivval.LoadFilePV(newPvKeyFile, newPvStateFile)
+			newBlsPv := privval.LoadBlsPV(newBlsKeyFile, newBlsPasswordFile)
+			err := verifyAfterMigration(
+				pvKey.PrivKey,
+				newCmtPv.Key.PrivKey,
+				pvKey.BlsPrivKey,
+				newBlsPv.Key.PrivKey,
+			)
+			require.NoError(t, err)
+		})
 	})
 }
 

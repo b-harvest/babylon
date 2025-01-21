@@ -8,6 +8,7 @@ import (
 
 	"github.com/babylonlabs-io/babylon/app"
 	"github.com/babylonlabs-io/babylon/crypto/bls12381"
+	"github.com/babylonlabs-io/babylon/privval"
 	cmtcfg "github.com/cometbft/cometbft/config"
 	cmtcrypto "github.com/cometbft/cometbft/crypto"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
@@ -77,10 +78,14 @@ func migrate(homeDir, password string) error {
 		return fmt.Errorf("priv_validator_key.json of previous version does not contain both the comet and bls keys")
 	}
 
-	cmtPv := cmtprivval.NewFilePV(prevCmtPrivKey, cmtcfg.PrivValidatorKeyFile(), cmtcfg.PrivValidatorStateFile())
-	cmtPv.Key.Save()
-	blsPv := createBlsKey(prevBlsPrivKey, homeDir, password)
+	if password == "" {
+		password = privval.NewBlsPassword()
+	}
 
+	cmtPv := cmtprivval.NewFilePV(prevCmtPrivKey, cmtcfg.PrivValidatorKeyFile(), cmtcfg.PrivValidatorStateFile())
+	blsPv := privval.NewBlsPV(prevBlsPrivKey, privval.DefaultBlsKeyFile(homeDir), privval.DefaultBlsPasswordFile(homeDir))
+
+	// before saving keys to files, verify that the migrated keys match
 	if err := verifyAfterMigration(
 		prevCmtPrivKey,
 		cmtPv.Key.PrivKey,
@@ -89,6 +94,10 @@ func migrate(homeDir, password string) error {
 	); err != nil {
 		return fmt.Errorf("failed to verify after migration: %w", err)
 	}
+
+	// save key to files after verification
+	cmtPv.Save()
+	blsPv.Key.Save(password)
 	return nil
 }
 
