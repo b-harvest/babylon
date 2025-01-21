@@ -268,15 +268,18 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, appOpts serverty
 
 	homeDir := cast.ToString(appOpts.Get(flags.FlagHome))
 
-	isTestMode := cast.ToBool(appOpts.Get("test"))
-	if isTestMode {
-		oslog.Println(
-			"NOTE: In this mode, it will automatically migrate the key file for testing. " +
-				"Do not run it in a production environment, as it may cause problems.",
-		)
-		if err := migrate(homeDir, "password"); err != nil {
-			oslog.Println(err)
-		}
+	// isTestMode := cast.ToBool(appOpts.Get("test"))
+	// if isTestMode {
+	// 	oslog.Println(
+	// 		"NOTE: In this mode, it will automatically migrate the key file for testing. " +
+	// 			"Do not run it in a production environment, as it may cause problems.",
+	// 	)
+	// 	if err := migrate(homeDir, "password"); err != nil {
+	// 		oslog.Println(err)
+	// 	}
+	// }
+	if err := migrate(homeDir, "password"); err != nil {
+		oslog.Println(err)
 	}
 
 	privSigner, err := signer.InitPrivSigner(homeDir)
