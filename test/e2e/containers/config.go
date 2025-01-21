@@ -17,9 +17,10 @@ const (
 	// name of babylon image produced by running `make build-docker`
 	BabylonContainerName = "babylonlabs-io/babylond"
 	// name of babylon image before the upgrade
-	BabylonContainerNameBeforeUpgrade = "babylonlabs/babylond"
+	// BabylonContainerNameBeforeUpgrade = "babylonlabs/babylond"
 	// BabylonContainerTagBeforeUpgrade  = "v0.9.3"
-	BabylonContainerTagBeforeUpgrade = "latest"
+	BabylonContainerNameBeforeUpgrade = "babylonlabs-io/babylond-e2e-init-chain"
+	BabylonContainerTagBeforeUpgrade  = "latest"
 
 	// name of the image produced by running `make e2e-init-chain` in contrib/images
 	InitChainContainerE2E = "babylonlabs-io/babylond-e2e-init-chain"
