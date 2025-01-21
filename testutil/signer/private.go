@@ -31,7 +31,10 @@ func SetupTestPrivSigner() (*signer.PrivSigner, error) {
 		return nil, err
 	}
 
-	privSigner, _ := signer.InitPrivSigner(nodeDir)
+	privSigner, err := signer.InitPrivSigner(nodeDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init priv signer: %w", err)
+	}
 	return privSigner, nil
 }
 
@@ -70,8 +73,7 @@ func GeneratePrivSigner(homeDir string) error {
 	}
 
 	cometPV := cmtprivval.GenFilePV(cmtKeyFile, cmtStateFile)
-	cometPV.Key.Save()
-	cometPV.LastSignState.Save()
+	cometPV.Save()
 
 	privval.GenBlsPV(blsKeyFile, blsPasswordFile, "password")
 	return nil
