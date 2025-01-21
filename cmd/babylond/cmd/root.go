@@ -39,8 +39,6 @@ import (
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
 
-	oslog "log"
-
 	"github.com/babylonlabs-io/babylon/app"
 	"github.com/babylonlabs-io/babylon/app/params"
 	"github.com/babylonlabs-io/babylon/cmd/babylond/cmd/genhelpers"
@@ -278,9 +276,9 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, appOpts serverty
 	// 		oslog.Println(err)
 	// 	}
 	// }
-	if err := migrate(homeDir, "password"); err != nil {
-		oslog.Println(err)
-	}
+	// if err := migrate(homeDir, "password"); err != nil {
+	// 	oslog.Println(err)
+	// }
 
 	privSigner, err := signer.InitPrivSigner(homeDir)
 	if err != nil {

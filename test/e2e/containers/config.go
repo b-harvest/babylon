@@ -42,8 +42,10 @@ func NewImageConfig(isCosmosRelayer, isUpgrade bool) (ic ImageConfig) {
 
 	if isUpgrade {
 		// starts at the older version and later upgrades it to current branch... BabylonContainerName
-		ic.CurrentRepository = BabylonContainerNameBeforeUpgrade
-		ic.CurrentTag = BabylonContainerTagBeforeUpgrade
+		// ic.CurrentRepository = BabylonContainerNameBeforeUpgrade
+		// ic.CurrentTag = BabylonContainerTagBeforeUpgrade
+		ic.CurrentRepository = BabylonContainerName
+		ic.CurrentTag = "latest"
 	}
 
 	if isCosmosRelayer {
