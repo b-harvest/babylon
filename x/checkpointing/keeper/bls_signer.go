@@ -33,3 +33,7 @@ func (k Keeper) GetValAddressFromPubkey() sdk.ValAddress {
 	pk := k.blsSigner.GetValidatorPubkey()
 	return sdk.ValAddress(pk.Address())
 }
+
+func (k Keeper) GetBlsPubkeyFromPv() (bls12381.PublicKey, error) {
+	return k.blsSigner.GetBlsPubkey()
+}

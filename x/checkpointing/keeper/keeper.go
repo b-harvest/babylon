@@ -406,6 +406,11 @@ func (k Keeper) GetBlsPubKey(ctx context.Context, address sdk.ValAddress) (bls12
 	return k.RegistrationState(ctx).GetBlsPubKey(address)
 }
 
+// GetValAddr returns the validator address of the BLS public key
+func (k Keeper) GetValAddr(ctx context.Context, key bls12381.PublicKey) (sdk.ValAddress, error) {
+	return k.RegistrationState(ctx).GetValAddr(key)
+}
+
 func (k Keeper) GetEpoch(ctx context.Context) *epochingtypes.Epoch {
 	return k.epochingKeeper.GetEpoch(ctx)
 }

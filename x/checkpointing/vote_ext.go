@@ -53,18 +53,27 @@ func (h *VoteExtensionHandler) ExtendVote() sdk.ExtendVoteHandler {
 
 		// 1. check if itself is the validator as the BLS sig is only signed
 		// when the node itself is a validator
+		// valConsAddr := k.GetConAddressFromPubkey()
+		// val, err := k.GetValidatorByConsAddr(ctx, valConsAddr)
+		// if err != nil {
+		// 	panic(fmt.Errorf("the BLS signer's consensus address %s is not in the validator set", valConsAddr.String()))
+		// }
 
-		valConsAddr := k.GetConAddressFromPubkey()
-		val, err := k.GetValidatorByConsAddr(ctx, valConsAddr)
+		blsPubKey, err := k.GetBlsPubkeyFromPv()
 		if err != nil {
-			panic(fmt.Errorf("the BLS signer's consensus address %s is not in the validator set", valConsAddr.String()))
+			panic(fmt.Errorf("failed to get BLS public key: %w", err))
+		}
+
+		signer, err := k.GetValAddr(ctx, blsPubKey)
+		if err != nil {
+			panic(fmt.Errorf("failed to get validator address from BLS public key %s", blsPubKey))
 		}
 
 		// get signer (delegator address)
-		signer, err := sdk.ValAddressFromBech32(val.GetOperator())
-		if err != nil {
-			panic(fmt.Errorf("the BLS signer's operator %s is not in the validator set", val.GetOperator()))
-		}
+		// signer, err := sdk.ValAddressFromBech32(val.GetOperator())
+		// if err != nil {
+		// 	panic(fmt.Errorf("the BLS signer's operator %s is not in the validator set", val.GetOperator()))
+		// }
 
 		// 2. sign BLS signature
 		blsSig, err := k.SignBLS(epoch.EpochNumber, req.Hash)
