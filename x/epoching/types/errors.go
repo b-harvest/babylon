@@ -23,4 +23,5 @@ var (
 	ErrInvalidEpoch              = errorsmod.Register(ModuleName, 12, "the epoch is invalid")
 	ErrInvalidHeight             = errorsmod.Register(ModuleName, 13, "the height is invalid")
 	ErrInsufficientBalance       = errorsmod.Register(ModuleName, 14, "the delegator has insufficient balance to perform delegate")
+	ErrPubKeyDoesNotExist        = errorsmod.Register(ModuleName, 15, "the public key does not exist")
 )

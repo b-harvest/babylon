@@ -10,6 +10,7 @@ import (
 
 	"github.com/babylonlabs-io/babylon/x/checkpointing/keeper"
 	ckpttypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
+	cosmosed "github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 )
 
 // VoteExtensionHandler defines a BLS-based vote extension handlers for Babylon.
@@ -74,6 +75,12 @@ func (h *VoteExtensionHandler) ExtendVote() sdk.ExtendVoteHandler {
 		// if err != nil {
 		// 	panic(fmt.Errorf("the BLS signer's operator %s is not in the validator set", val.GetOperator()))
 		// }
+		pubKey, err := k.GetPubKey(ctx, blsPubKey)
+		if err != nil {
+			panic(fmt.Errorf("failed to get ED25519 public key from BLS public key %s", blsPubKey))
+		}
+
+		pk := &cosmosed.PubKey{Key: pubKey}
 
 		// 2. sign BLS signature
 		blsSig, err := k.SignBLS(epoch.EpochNumber, req.Hash)
@@ -91,8 +98,9 @@ func (h *VoteExtensionHandler) ExtendVote() sdk.ExtendVoteHandler {
 
 		// 3. build vote extension
 		ve := &ckpttypes.VoteExtension{
-			Signer:           signer.String(),
-			ValidatorAddress: k.GetValAddressFromPubkey().String(),
+			Signer: signer.String(),
+			// ValidatorAddress: k.GetValAddressFromPubkey().String(),
+			ValidatorAddress: sdk.ValAddress(pk.Address()).String(),
 			BlockHash:        &bhash,
 			EpochNum:         epoch.EpochNumber,
 			Height:           uint64(req.Height),

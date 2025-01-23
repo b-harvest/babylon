@@ -20,4 +20,5 @@ var (
 	ErrInvalidAppHash          = errorsmod.Register(ModuleName, 1214, "Provided app hash is Invalid")
 	ErrInsufficientVotingPower = errorsmod.Register(ModuleName, 1215, "Accumulated voting power is not greater than 2/3 of total power")
 	ErrValAddrDoesNotExist     = errorsmod.Register(ModuleName, 1216, "Validator address does not exist")
+	ErrPubKeyDoesNotExist      = errorsmod.Register(ModuleName, 1217, "ED25519 public key does not exist")
 )

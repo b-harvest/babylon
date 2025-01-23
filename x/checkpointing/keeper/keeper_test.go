@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/boljen/go-bitmap"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/golang/mock/gomock"
@@ -168,7 +169,8 @@ func FuzzKeeperCheckpointEpoch(f *testing.F) {
 		ek.EXPECT().GetTotalVotingPower(gomock.Any(), gomock.Any()).Return(int64(10)).AnyTimes()
 		ckptKeeper, ctx, _ := testkeeper.CheckpointingKeeper(t, ek, nil)
 		for i, val := range valSet {
-			err := ckptKeeper.CreateRegistration(ctx, pubkeys[i], val.Addr)
+			pk := ed25519.GenPrivKey().PubKey().Bytes()
+			err := ckptKeeper.CreateRegistration(ctx, pubkeys[i], val.Addr, pk)
 			require.NoError(t, err)
 		}
 

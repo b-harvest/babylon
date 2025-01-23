@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+
 	"github.com/babylonlabs-io/babylon/x/checkpointing/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -21,7 +22,7 @@ func (k Keeper) SetGenBlsKeys(ctx context.Context, genKeys []*types.GenesisKey) 
 		if !ok {
 			panic("Proof-of-Possession is not valid")
 		}
-		err = k.RegistrationState(ctx).CreateRegistration(*key.BlsKey.Pubkey, addr)
+		err = k.RegistrationState(ctx).CreateRegistration(*key.BlsKey.Pubkey, addr, key.ValPubkey.Bytes())
 		if err != nil {
 			panic("failed to register a BLS key")
 		}

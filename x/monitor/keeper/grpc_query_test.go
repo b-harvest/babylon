@@ -107,7 +107,7 @@ func FuzzQueryReportedCheckpointBtcHeight(f *testing.F) {
 				Addr:  []byte(val.ValidatorAddress),
 				Power: int64(val.VotingPower),
 			}
-			err := ck.CreateRegistration(ctx, val.BlsPubKey, []byte(val.ValidatorAddress))
+			err := ck.CreateRegistration(ctx, val.BlsPubKey, []byte(val.ValidatorAddress), []byte(val.ValidatorAddress))
 			require.NoError(t, err)
 		}
 		mockCkptWithMeta := &ckpttypes.RawCheckpointWithMeta{Ckpt: datagen.GenerateLegitimateRawCheckpoint(r, privKeys)}

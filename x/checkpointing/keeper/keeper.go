@@ -379,8 +379,8 @@ func (k Keeper) UpdateCheckpoint(ctx context.Context, ckptWithMeta *types.RawChe
 	return k.CheckpointsState(ctx).UpdateCheckpoint(ckptWithMeta)
 }
 
-func (k Keeper) CreateRegistration(ctx context.Context, blsPubKey bls12381.PublicKey, valAddr sdk.ValAddress) error {
-	return k.RegistrationState(ctx).CreateRegistration(blsPubKey, valAddr)
+func (k Keeper) CreateRegistration(ctx context.Context, blsPubKey bls12381.PublicKey, valAddr sdk.ValAddress, pubkey []byte) error {
+	return k.RegistrationState(ctx).CreateRegistration(blsPubKey, valAddr, pubkey)
 }
 
 // GetBLSPubKeySet returns the set of BLS public keys in the same order of the validator set for a given epoch
@@ -404,6 +404,11 @@ func (k Keeper) GetBLSPubKeySet(ctx context.Context, epochNumber uint64) ([]*typ
 
 func (k Keeper) GetBlsPubKey(ctx context.Context, address sdk.ValAddress) (bls12381.PublicKey, error) {
 	return k.RegistrationState(ctx).GetBlsPubKey(address)
+}
+
+// GetPubKey retrieves ED25519 public key by BLS public key
+func (k Keeper) GetPubKey(ctx context.Context, key bls12381.PublicKey) ([]byte, error) {
+	return k.RegistrationState(ctx).GetPubKey(key)
 }
 
 // GetValAddr returns the validator address of the BLS public key

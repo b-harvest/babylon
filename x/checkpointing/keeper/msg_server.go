@@ -39,7 +39,7 @@ func (m msgServer) WrappedCreateValidator(goCtx context.Context, msg *types.MsgW
 	}
 
 	// store BLS public key
-	err = m.k.CreateRegistration(ctx, *msg.Key.Pubkey, valAddr)
+	err = m.k.CreateRegistration(ctx, *msg.Key.Pubkey, valAddr, msg.Key.Pubkey.Bytes())
 	if err != nil {
 		return nil, err
 	}

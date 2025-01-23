@@ -29,8 +29,9 @@ var (
 
 	CkptsObjectPrefix = append(CheckpointsPrefix, 0x0) // where we save the concrete BLS sig bytes
 
-	AddrToBlsKeyPrefix = append(RegistrationPrefix, 0x0) // where we save the concrete BLS public keys
-	BlsKeyToAddrPrefix = append(RegistrationPrefix, 0x1) // where we save BLS key set
+	AddrToBlsKeyPrefix   = append(RegistrationPrefix, 0x0) // where we save the concrete BLS public keys
+	BlsKeyToAddrPrefix   = append(RegistrationPrefix, 0x1) // where we save BLS key set
+	BlsKeyToPubKeyPrefix = append(RegistrationPrefix, 0x2) // where we save BLS key set
 
 	LastFinalizedEpochKey = []byte{0x04} // LastFinalizedEpochKey defines the key to store the last finalised epoch
 )

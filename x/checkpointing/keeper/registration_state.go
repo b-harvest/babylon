@@ -18,20 +18,22 @@ type RegistrationState struct {
 	addrToBlsKeys storetypes.KVStore
 	// blsKeysToAddr maps BLS public keys to validator addresses
 	blsKeysToAddr storetypes.KVStore
+	// blsKeysToPubKey maps BLS public keys to validator public keys
+	blsKeysToPubKey storetypes.KVStore
 }
 
 func (k Keeper) RegistrationState(ctx context.Context) RegistrationState {
-	// Build the RegistrationState storage
 	storeAdapter := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
 	return RegistrationState{
-		cdc:           k.cdc,
-		addrToBlsKeys: prefix.NewStore(storeAdapter, types.AddrToBlsKeyPrefix),
-		blsKeysToAddr: prefix.NewStore(storeAdapter, types.BlsKeyToAddrPrefix),
+		cdc:             k.cdc,
+		addrToBlsKeys:   prefix.NewStore(storeAdapter, types.AddrToBlsKeyPrefix),
+		blsKeysToAddr:   prefix.NewStore(storeAdapter, types.BlsKeyToAddrPrefix),
+		blsKeysToPubKey: prefix.NewStore(storeAdapter, types.BlsKeyToPubKeyPrefix),
 	}
 }
 
 // CreateRegistration inserts the BLS key into the addr -> key and key -> addr storage
-func (rs RegistrationState) CreateRegistration(key bls12381.PublicKey, valAddr sdk.ValAddress) error {
+func (rs RegistrationState) CreateRegistration(key bls12381.PublicKey, valAddr sdk.ValAddress, pubkey []byte) error {
 	blsPubKey, err := rs.GetBlsPubKey(valAddr)
 
 	// we should disallow a validator to register with different BLS public keys
@@ -55,6 +57,7 @@ func (rs RegistrationState) CreateRegistration(key bls12381.PublicKey, valAddr s
 	blsPkKey := types.AddrToBlsKeyKey(valAddr)
 	rs.addrToBlsKeys.Set(blsPkKey, key)
 	rs.blsKeysToAddr.Set(bkToAddrKey, valAddr.Bytes())
+	rs.blsKeysToPubKey.Set(bkToAddrKey, pubkey)
 
 	return nil
 }
@@ -89,4 +92,14 @@ func (rs RegistrationState) GetValAddr(key bls12381.PublicKey) (sdk.ValAddress, 
 func (rs RegistrationState) Exists(addr sdk.ValAddress) bool {
 	pkKey := types.AddrToBlsKeyKey(addr)
 	return rs.addrToBlsKeys.Has(pkKey)
+}
+
+// GetPubKey retrieves ED25519 public key by BLS public key
+func (rs RegistrationState) GetPubKey(key bls12381.PublicKey) ([]byte, error) {
+	pkKey := types.BlsKeyToAddrKey(key)
+	rawBytes := rs.blsKeysToPubKey.Get(pkKey)
+	if rawBytes == nil {
+		return nil, types.ErrPubKeyDoesNotExist.Wrapf("ED25519 public key does not exist with BLS public key %s", key)
+	}
+	return rawBytes, nil
 }
