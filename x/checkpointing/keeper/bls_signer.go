@@ -8,8 +8,8 @@ import (
 	"github.com/babylonlabs-io/babylon/x/checkpointing/types"
 )
 
+// BlsSigner is an interface for signing BLS messages
 type BlsSigner interface {
-	// GetAddress() sdk.ValAddress
 	SignMsgWithBls(msg []byte) (bls12381.Signature, error)
 	GetBlsPubkey() (bls12381.PublicKey, error)
 	GetValidatorPubkey() crypto.PubKey

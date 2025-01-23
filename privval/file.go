@@ -4,10 +4,13 @@ import (
 	"fmt"
 
 	"github.com/babylonlabs-io/babylon/crypto/bls12381"
+	"github.com/babylonlabs-io/babylon/x/checkpointing/keeper"
 	checkpointingtypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
 	cmtcrypto "github.com/cometbft/cometbft/crypto"
 	cmtprivval "github.com/cometbft/cometbft/privval"
 )
+
+var _ keeper.BlsSigner = &WrappedFilePV{}
 
 // WrappedFilePV is a wrapper around cmtprivval.FilePV
 type WrappedFilePV struct {
