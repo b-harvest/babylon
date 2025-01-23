@@ -35,7 +35,7 @@ func SetupTestPrivSigner() (*signer.PrivSigner, error) {
 	return privSigner, nil
 }
 
-// func GenesisKeyFromPrivSigner(ps *signer.PrivSigner, delegatorAddress sdk.ValAddress) (*checkpointingtypes.GenesisKey, error) {
+// GenesisKeyFromPrivSigner returns a GenesisKey from a PrivSigner
 func GenesisKeyFromPrivSigner(ps *signer.PrivSigner, delegatorAddress sdk.ValAddress) (*checkpointingtypes.GenesisKey, error) {
 	valKeys, err := privval.NewValidatorKeys(
 		ps.PV.Comet.PrivKey,
@@ -56,6 +56,7 @@ func GenesisKeyFromPrivSigner(ps *signer.PrivSigner, delegatorAddress sdk.ValAdd
 	)
 }
 
+// GeneratePrivSigner generates a PrivSigner for testing
 func GeneratePrivSigner(nodeDir string) error {
 	nodeCfg := cmtconfig.DefaultConfig()
 	nodeCfg.SetRoot(nodeDir)

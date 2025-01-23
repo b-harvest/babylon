@@ -13,7 +13,7 @@ func InitCmd(mbm module.BasicManager, defaultNodeHome string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   cosmosInitCmd.Use,
 		Short: cosmosInitCmd.Short,
-		Long:  cosmosInitCmd.Long,
+		Long:  `Initialize validators's and node's configuration files, including the generation and setup of BLS keys for validators.`,
 		Args:  cosmosInitCmd.Args,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := cosmosInitCmd.RunE(cmd, args); err != nil {
@@ -27,6 +27,6 @@ func InitCmd(mbm module.BasicManager, defaultNodeHome string) *cobra.Command {
 		},
 	}
 	cmd.Flags().AddFlagSet(cosmosInitCmd.Flags())
-	cmd.Flags().String(flagBlsPassword, "", "The password for the BLS key. If a flag is set, the non-empty password should be provided. If a flag is not set, the password will be read from the prompt.")
+	cmd.Flags().String(flagBlsPassword, "", "The password for the BLS key. If a flag is not set, the password will be read from the prompt.")
 	return cmd
 }
