@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	corestoretypes "cosmossdk.io/core/store"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	txformat "github.com/babylonlabs-io/babylon/btctxformatter"
 
@@ -14,8 +15,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	cmtprotocrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
-
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/babylonlabs-io/babylon/crypto/bls12381"
 	"github.com/babylonlabs-io/babylon/x/checkpointing/types"
@@ -434,8 +433,8 @@ func (k Keeper) GetPubKeyByConsAddr(ctx context.Context, consAddr sdk.ConsAddres
 }
 
 // GetValidatorByConsAddr returns the validator by consensus address
-func (k Keeper) GetValidatorByConsAddr(ctx context.Context, consAddr sdk.ConsAddress) (stakingtypes.Validator, error) {
-	return k.epochingKeeper.GetValidatorByConsAddr(ctx, consAddr)
+func (k Keeper) GetValidator(ctx context.Context, addr sdk.ValAddress) (stakingtypes.Validator, error) {
+	return k.epochingKeeper.GetValidator(ctx, addr)
 }
 
 // GetLastFinalizedEpoch gets the last finalised epoch

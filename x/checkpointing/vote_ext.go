@@ -52,9 +52,19 @@ func (h *VoteExtensionHandler) ExtendVote() sdk.ExtendVoteHandler {
 		}
 
 		// 1. get validator address for VoteExtension structure
-		valAddr, err := k.GetValidatorAddress(ctx)
+		valOperAddr, err := k.GetValidatorAddress(ctx)
 		if err != nil {
 			panic(fmt.Errorf("failed to get validator address: %w", err))
+		}
+
+		val, err := k.GetValidator(ctx, valOperAddr)
+		if err != nil {
+			panic(fmt.Errorf("the BLS signer's address %s is not in the validator set", valOperAddr.String()))
+		}
+
+		valConsPubkey, err := val.ConsPubKey()
+		if err != nil {
+			panic(fmt.Errorf("the BLS signer's consensus pubkey %s is invalid", val.OperatorAddress))
 		}
 
 		// 2. sign BLS signature
@@ -70,11 +80,10 @@ func (h *VoteExtensionHandler) ExtendVote() sdk.ExtendVoteHandler {
 			// NOTE: this indicates programmatic error in CometBFT
 			panic(fmt.Errorf("invalid CometBFT hash"))
 		}
-
 		// 3. build vote extension
 		ve := &ckpttypes.VoteExtension{
-			Signer:           valAddr.String(),
-			ValidatorAddress: valAddr.String(),
+			Signer:           valOperAddr.String(),
+			ValidatorAddress: sdk.ValAddress(valConsPubkey.Address()).String(),
 			BlockHash:        &bhash,
 			EpochNum:         epoch.EpochNumber,
 			Height:           uint64(req.Height),

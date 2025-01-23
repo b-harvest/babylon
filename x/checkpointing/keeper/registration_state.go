@@ -5,11 +5,12 @@ import (
 
 	"cosmossdk.io/store/prefix"
 	storetypes "cosmossdk.io/store/types"
-	"github.com/babylonlabs-io/babylon/crypto/bls12381"
-	"github.com/babylonlabs-io/babylon/x/checkpointing/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	"github.com/babylonlabs-io/babylon/crypto/bls12381"
+	"github.com/babylonlabs-io/babylon/x/checkpointing/types"
 )
 
 type RegistrationState struct {
@@ -79,10 +80,7 @@ func (rs RegistrationState) GetValAddr(key bls12381.PublicKey) (sdk.ValAddress, 
 	if rawBytes == nil {
 		return nil, types.ErrValAddrDoesNotExist.Wrapf("validator address does not exist with BLS public key %s", key)
 	}
-	addr := new(sdk.ValAddress)
-	err := addr.Unmarshal(rawBytes)
-
-	return *addr, err
+	return rawBytes, nil
 }
 
 // Exists checks whether a BLS key exists
