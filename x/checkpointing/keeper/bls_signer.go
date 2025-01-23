@@ -4,16 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/babylonlabs-io/babylon/crypto/bls12381"
 	"github.com/babylonlabs-io/babylon/x/checkpointing/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
-
-// BlsSigner is an interface for signing BLS messages
-type BlsSigner interface {
-	SignMsgWithBls(msg []byte) (bls12381.Signature, error)
-	GetBlsPubkey() (bls12381.PublicKey, error)
-}
 
 // SignBLS signs a BLS signature over the given information
 func (k Keeper) SignBLS(epochNum uint64, blockHash types.BlockHash) (bls12381.Signature, error) {

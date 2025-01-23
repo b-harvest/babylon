@@ -7,10 +7,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/babylonlabs-io/babylon/crypto/bls12381"
-	"github.com/babylonlabs-io/babylon/crypto/erc2335"
-	"github.com/babylonlabs-io/babylon/x/checkpointing/keeper"
-	checkpointingtypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
 	cmtcfg "github.com/cometbft/cometbft/config"
 	cmtcrypto "github.com/cometbft/cometbft/crypto"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
@@ -19,9 +15,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	"github.com/babylonlabs-io/babylon/crypto/bls12381"
+	"github.com/babylonlabs-io/babylon/crypto/erc2335"
+	checkpointingtypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
 )
 
-var _ keeper.BlsSigner = &BlsPVKey{}
+var _ checkpointingtypes.BlsSigner = &BlsPVKey{}
 
 const (
 	DefaultBlsKeyName      = "bls_key.json"     // Default file name for BLS key
