@@ -92,7 +92,7 @@ func (h *VoteExtensionHandler) ExtendVote() sdk.ExtendVoteHandler {
 		// 3. build vote extension
 		ve := &ckpttypes.VoteExtension{
 			Signer:           signer.String(),
-			ValidatorAddress: signer.String(), //k.GetValAddressFromPubkey().String(),
+			ValidatorAddress: k.GetValAddressFromPubkey().String(),
 			BlockHash:        &bhash,
 			EpochNum:         epoch.EpochNumber,
 			Height:           uint64(req.Height),
