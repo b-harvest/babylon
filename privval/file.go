@@ -4,8 +4,6 @@ import (
 	cmtprivval "github.com/cometbft/cometbft/privval"
 )
 
-// var _ keeper.BlsSigner = &WrappedFilePV{}
-
 // WrappedFilePV is a wrapper around cmtprivval.FilePV
 type WrappedFilePV struct {
 	Comet cmtprivval.FilePVKey
