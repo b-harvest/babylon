@@ -72,6 +72,19 @@ func (rs RegistrationState) GetBlsPubKey(addr sdk.ValAddress) (bls12381.PublicKe
 	return *pk, err
 }
 
+// GetBlsPubKey retrieves BLS public key by validator's address
+func (rs RegistrationState) GetValAddr(key bls12381.PublicKey) (sdk.ValAddress, error) {
+	pkKey := types.BlsKeyToAddrKey(key)
+	rawBytes := rs.blsKeysToAddr.Get(pkKey)
+	if rawBytes == nil {
+		return nil, types.ErrValAddrDoesNotExist.Wrapf("validator address does not exist with BLS public key %s", key)
+	}
+	addr := new(sdk.ValAddress)
+	err := addr.Unmarshal(rawBytes)
+
+	return *addr, err
+}
+
 // Exists checks whether a BLS key exists
 func (rs RegistrationState) Exists(addr sdk.ValAddress) bool {
 	pkKey := types.AddrToBlsKeyKey(addr)

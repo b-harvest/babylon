@@ -9,6 +9,7 @@ import (
 
 	"github.com/babylonlabs-io/babylon/crypto/bls12381"
 	"github.com/babylonlabs-io/babylon/crypto/erc2335"
+	"github.com/babylonlabs-io/babylon/x/checkpointing/keeper"
 	checkpointingtypes "github.com/babylonlabs-io/babylon/x/checkpointing/types"
 	cmtcfg "github.com/cometbft/cometbft/config"
 	cmtcrypto "github.com/cometbft/cometbft/crypto"
@@ -19,6 +20,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
+
+var _ keeper.BlsSigner = &BlsPVKey{}
 
 const (
 	DefaultBlsKeyName      = "bls_key.json"     // Default file name for BLS key
@@ -180,4 +183,20 @@ func DefaultBlsKeyFile(home string) string {
 // DefaultBlsPasswordFile returns the default BLS password file path.
 func DefaultBlsPasswordFile(home string) string {
 	return filepath.Join(home, defaultBlsPasswordPath)
+}
+
+// SignMsgWithBls signs a message with BLS, implementing the BlsSigner interface
+func (k *BlsPVKey) SignMsgWithBls(msg []byte) (bls12381.Signature, error) {
+	if k.PrivKey == nil {
+		return nil, fmt.Errorf("BLS private key does not exist: %w", checkpointingtypes.ErrBlsPrivKeyDoesNotExist)
+	}
+	return bls12381.Sign(k.PrivKey, msg), nil
+}
+
+// GetBlsPubkey returns the public key of the BLS, implementing the BlsSigner interface
+func (k *BlsPVKey) GetBlsPubkey() (bls12381.PublicKey, error) {
+	if k.PrivKey == nil {
+		return nil, checkpointingtypes.ErrBlsPrivKeyDoesNotExist
+	}
+	return k.PrivKey.PubKey(), nil
 }
