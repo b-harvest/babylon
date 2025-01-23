@@ -8,8 +8,6 @@ import (
 	reflect "reflect"
 
 	bls12381 "github.com/babylonlabs-io/babylon/crypto/bls12381"
-	crypto "github.com/cometbft/cometbft/crypto"
-	types "github.com/cosmos/cosmos-sdk/types"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -36,20 +34,6 @@ func (m *MockBlsSigner) EXPECT() *MockBlsSignerMockRecorder {
 	return m.recorder
 }
 
-// GetAddress mocks base method.
-func (m *MockBlsSigner) GetAddress() types.ValAddress {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAddress")
-	ret0, _ := ret[0].(types.ValAddress)
-	return ret0
-}
-
-// GetAddress indicates an expected call of GetAddress.
-func (mr *MockBlsSignerMockRecorder) GetAddress() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAddress", reflect.TypeOf((*MockBlsSigner)(nil).GetAddress))
-}
-
 // GetBlsPubkey mocks base method.
 func (m *MockBlsSigner) GetBlsPubkey() (bls12381.PublicKey, error) {
 	m.ctrl.T.Helper()
@@ -63,21 +47,6 @@ func (m *MockBlsSigner) GetBlsPubkey() (bls12381.PublicKey, error) {
 func (mr *MockBlsSignerMockRecorder) GetBlsPubkey() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlsPubkey", reflect.TypeOf((*MockBlsSigner)(nil).GetBlsPubkey))
-}
-
-// GetValidatorPubkey mocks base method.
-func (m *MockBlsSigner) GetValidatorPubkey() (crypto.PubKey, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetValidatorPubkey")
-	ret0, _ := ret[0].(crypto.PubKey)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetValidatorPubkey indicates an expected call of GetValidatorPubkey.
-func (mr *MockBlsSignerMockRecorder) GetValidatorPubkey() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetValidatorPubkey", reflect.TypeOf((*MockBlsSigner)(nil).GetValidatorPubkey))
 }
 
 // SignMsgWithBls mocks base method.

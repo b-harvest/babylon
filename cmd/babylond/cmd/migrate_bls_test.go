@@ -95,7 +95,7 @@ func TestMigrate(t *testing.T) {
 		t.Run("verify after migration", func(t *testing.T) {
 			newCmtPv := cmtprivval.LoadFilePV(newPvKeyFile, newPvStateFile)
 			newBlsPv := privval.LoadBlsPV(newBlsKeyFile, newBlsPasswordFile)
-			err := verifyAfterMigration(
+			err := verifyBeforeMigration(
 				pvKey.PrivKey,
 				newCmtPv.Key.PrivKey,
 				pvKey.BlsPrivKey,
@@ -146,7 +146,7 @@ func TestVerifyAfterMigration(t *testing.T) {
 		cmtKey := ed25519.GenPrivKey()
 		blsKey := bls12381.GenPrivKey()
 
-		err := verifyAfterMigration(cmtKey, cmtKey, blsKey, blsKey)
+		err := verifyBeforeMigration(cmtKey, cmtKey, blsKey, blsKey)
 		require.NoError(t, err)
 	})
 
@@ -155,7 +155,7 @@ func TestVerifyAfterMigration(t *testing.T) {
 		cmtKey2 := ed25519.GenPrivKey()
 		blsKey := bls12381.GenPrivKey()
 
-		err := verifyAfterMigration(cmtKey1, cmtKey2, blsKey, blsKey)
+		err := verifyBeforeMigration(cmtKey1, cmtKey2, blsKey, blsKey)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "migrated keys do not match")
 	})
@@ -165,7 +165,7 @@ func TestVerifyAfterMigration(t *testing.T) {
 		blsKey1 := bls12381.GenPrivKey()
 		blsKey2 := bls12381.GenPrivKey()
 
-		err := verifyAfterMigration(cmtKey, cmtKey, blsKey1, blsKey2)
+		err := verifyBeforeMigration(cmtKey, cmtKey, blsKey1, blsKey2)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "migrated keys do not match")
 	})
