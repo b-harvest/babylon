@@ -96,8 +96,7 @@ func GenesisValidatorSetWithPrivSigner(numVals int) (*GenesisValidators, *appsig
 		return nil, nil, fmt.Errorf("failed to setup test priv signer: %w", err)
 	}
 
-	validatorAddress := sdk.AccAddress(ps.PV.Comet.PrivKey.PubKey().Address())
-	signerGenesisKey, err := signer.GenesisKeyFromPrivSigner(ps, sdk.ValAddress(validatorAddress))
+	signerGenesisKey, err := signer.GenesisKeyFromPrivSigner(ps, sdk.ValAddress{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get genesis key from priv signer: %w", err)
 	}
