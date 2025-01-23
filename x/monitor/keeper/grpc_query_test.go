@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/cometbft/cometbft/crypto/ed25519"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -107,7 +108,8 @@ func FuzzQueryReportedCheckpointBtcHeight(f *testing.F) {
 				Addr:  []byte(val.ValidatorAddress),
 				Power: int64(val.VotingPower),
 			}
-			err := ck.CreateRegistration(ctx, val.BlsPubKey, []byte(val.ValidatorAddress), []byte(val.ValidatorAddress))
+			ed25519.GenPrivKey().PubKey().Bytes()
+			err := ck.CreateRegistration(ctx, val.BlsPubKey, []byte(val.ValidatorAddress), ed25519.GenPrivKey().PubKey().Bytes())
 			require.NoError(t, err)
 		}
 		mockCkptWithMeta := &ckpttypes.RawCheckpointWithMeta{Ckpt: datagen.GenerateLegitimateRawCheckpoint(r, privKeys)}
