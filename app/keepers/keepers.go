@@ -58,9 +58,6 @@ import (
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
 
-	mintkeeper "github.com/babylonlabs-io/babylon/x/mint/keeper"
-	minttypes "github.com/babylonlabs-io/babylon/x/mint/types"
-
 	appparams "github.com/babylonlabs-io/babylon/app/params"
 	bbn "github.com/babylonlabs-io/babylon/types"
 	owasm "github.com/babylonlabs-io/babylon/wasmbinding"
