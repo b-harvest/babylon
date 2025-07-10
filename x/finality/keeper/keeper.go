@@ -67,6 +67,7 @@ func NewKeeper(
 }
 
 func (k Keeper) BeginBlocker(ctx context.Context) error {
+	// TODO: // GenRandBtcChainInsertingInKeeperMock ->, next finality.BeginBlocker
 	// update voting power distribution
 	k.UpdatePowerDist(ctx)
 

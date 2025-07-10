@@ -279,7 +279,9 @@ replace (
 	cosmossdk.io/core => cosmossdk.io/core v0.11.0
 	// use cosmos fork of keyring
 	github.com/99designs/keyring => github.com/cosmos/keyring v1.2.0
-	github.com/cometbft/cometbft => github.com/b-harvest/cometbft v0.38.18-0.20250710043327-d3edb1ab2dc7
+
+	// TODO: replace when bench
+	//github.com/cometbft/cometbft => github.com/b-harvest/cometbft v0.38.18-0.20250710043327-d3edb1ab2dc7
 
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 	github.com/strangelove-ventures/tokenfactory => github.com/babylonlabs-io/tokenfactory v0.50.6-wasmvm2

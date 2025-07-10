@@ -2,20 +2,21 @@ package datagen
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"math/rand"
 	"testing"
 	"time"
 
 	sdkmath "cosmossdk.io/math"
-	bbn "github.com/babylonlabs-io/babylon/v2/types"
-	btclightclientk "github.com/babylonlabs-io/babylon/v2/x/btclightclient/keeper"
-	btclightclienttypes "github.com/babylonlabs-io/babylon/v2/x/btclightclient/types"
 	"github.com/btcsuite/btcd/blockchain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/stretchr/testify/require"
+
+	bbn "github.com/babylonlabs-io/babylon/v2/types"
+	btclightclienttypes "github.com/babylonlabs-io/babylon/v2/x/btclightclient/types"
 )
 
 type RetargetInfo struct {
@@ -272,6 +273,12 @@ func GenRandomValidChainStartingFrom(
 	return headers
 }
 
+type BTCHeaderKeeper interface {
+	SetBaseBTCHeader(ctx context.Context, header btclightclienttypes.BTCHeaderInfo)
+	InsertHeadersWithHookAndEvents(ctx context.Context, headers []bbn.BTCHeaderBytes) error
+	GetTipInfo(ctx context.Context) *btclightclienttypes.BTCHeaderInfo
+}
+
 // GenRandBtcChainInsertingInKeeper generates random BTCHeaderInfo and insert its headers
 // into the keeper store.
 // this function must not be used at difficulty adjustment boundaries, as then
@@ -279,7 +286,7 @@ func GenRandomValidChainStartingFrom(
 func GenRandBtcChainInsertingInKeeper(
 	t *testing.T,
 	r *rand.Rand,
-	k *btclightclientk.Keeper,
+	k BTCHeaderKeeper,
 	ctx context.Context,
 	initialHeight uint32,
 	chainLength uint32,
@@ -297,6 +304,31 @@ func GenRandBtcChainInsertingInKeeper(
 	tip := k.GetTipInfo(ctx)
 	randomChainTipInfo := randomChain.GetTipInfo()
 	require.True(t, tip.Eq(randomChainTipInfo))
+	return genesisHeaderInfo, randomChain
+}
+
+func GenRandBtcChainInsertingInKeeperMock(
+	k BTCHeaderKeeper,
+	ctx context.Context,
+	initialHeight uint32,
+	chainLength uint32,
+) (*btclightclienttypes.BTCHeaderInfo, *BTCHeaderPartialChain) {
+	r := rand.New(rand.NewSource(123456789))
+	genesisHeader := NewBTCHeaderChainWithLength(r, initialHeight, 0, 1)
+	genesisHeaderInfo := genesisHeader.GetChainInfo()[0]
+	k.SetBaseBTCHeader(ctx, *genesisHeaderInfo)
+	randomChain := NewBTCHeaderChainFromParentInfo(
+		r,
+		genesisHeaderInfo,
+		chainLength,
+	)
+	err := k.InsertHeadersWithHookAndEvents(ctx, randomChain.ChainToBytes())
+	if err != nil {
+		panic(err)
+	}
+	tip := k.GetTipInfo(ctx)
+	randomChainTipInfo := randomChain.GetTipInfo()
+	fmt.Println("GenRandBtcChainInsertingInKeeper", tip, randomChainTipInfo)
 	return genesisHeaderInfo, randomChain
 }
 

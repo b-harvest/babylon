@@ -2,9 +2,10 @@ package btclightclient
 
 import (
 	"context"
-	"cosmossdk.io/core/appmodule"
 	"encoding/json"
 	"fmt"
+
+	"cosmossdk.io/core/appmodule"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -12,14 +13,16 @@ import (
 
 	abci "github.com/cometbft/cometbft/abci/types"
 
-	"github.com/babylonlabs-io/babylon/v2/x/btclightclient/client/cli"
-	"github.com/babylonlabs-io/babylon/v2/x/btclightclient/keeper"
-	"github.com/babylonlabs-io/babylon/v2/x/btclightclient/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+
+	"github.com/babylonlabs-io/babylon/v2/testutil/datagen"
+	"github.com/babylonlabs-io/babylon/v2/x/btclightclient/client/cli"
+	"github.com/babylonlabs-io/babylon/v2/x/btclightclient/keeper"
+	"github.com/babylonlabs-io/babylon/v2/x/btclightclient/types"
 )
 
 var (
@@ -154,7 +157,11 @@ func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONCodec) json.Raw
 func (AppModule) ConsensusVersion() uint64 { return 1 }
 
 // BeginBlock executes all ABCI BeginBlock logic respective to the capability module.
-func (am AppModule) BeginBlock(_ context.Context) error {
+func (am AppModule) BeginBlock(ctx context.Context) error {
+	// mock, done, next finality.BeginBlocker
+	fmt.Println("Mock: finality BeginBlocker GenRandBtcChainInsertingInKeeper")
+	height := uint64(sdk.UnwrapSDKContext(ctx).HeaderInfo().Height)
+	datagen.GenRandBtcChainInsertingInKeeperMock(am.keeper, ctx, 10, uint32(height))
 	return nil
 }
 

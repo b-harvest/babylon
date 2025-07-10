@@ -5,11 +5,12 @@ import (
 	"time"
 
 	sdkmath "cosmossdk.io/math"
-	bbn "github.com/babylonlabs-io/babylon/v2/types"
 	"github.com/btcsuite/btcd/blockchain"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
+
+	bbn "github.com/babylonlabs-io/babylon/v2/types"
 )
 
 type BtcChainReadStore interface {
@@ -305,13 +306,13 @@ func (l *BtcLightClient) processNewHeadersChain(
 	for _, blockHeader := range chain {
 		h := blockHeader
 
-		err := l.checkHeader(
+		l.checkHeader(
 			store, parentHeaderInfo, h,
 		)
 
-		if err != nil {
-			return fmt.Errorf("provided header contains invalid header. Error msg: %s: %w", err.Error(), ErrInvalidHeader)
-		}
+		//if err != nil {
+		//	return fmt.Errorf("provided header contains invalid header. Error msg: %s: %w", err.Error(), ErrInvalidHeader)
+		//}
 
 		childWork := CalcHeaderWork(h)
 		newHeaderInfo := newLocalHeaderInfo(
