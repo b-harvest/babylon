@@ -36,6 +36,7 @@ func (k Keeper) UpdatePowerDist(ctx context.Context) {
 	// get all power distribution update events during the previous tip
 	// and the current tip
 	lastBTCTipHeight := k.BTCStakingKeeper.GetBTCHeightAtBabylonHeight(ctx, height-1)
+	// TODO: mock add event for iterating ProcessAllPowerDistUpdateEvents,  todo call addPowerDistUpdateEvent as mocking
 	events := k.BTCStakingKeeper.GetAllPowerDistUpdateEvents(ctx, lastBTCTipHeight, btcTipHeight)
 
 	// clear all events that have been consumed in this function
@@ -48,6 +49,13 @@ func (k Keeper) UpdatePowerDist(ctx context.Context) {
 	// reconcile old voting power distribution cache and new events
 	// to construct the new distribution
 	newDc := k.ProcessAllPowerDistUpdateEvents(ctx, dc, events)
+
+	fmt.Println("Mock finality.beginblock.UpdatePowerDist lastBTCTipHeight p", lastBTCTipHeight)
+	fmt.Println("Mock finality.beginblock.UpdatePowerDist events p", events)
+	fmt.Println("Mock finality.beginblock.UpdatePowerDist newDc p", newDc)
+	//Mock finality.beginblock.UpdatePowerDist lastBTCTipHeight p 14
+	//Mock finality.beginblock.UpdatePowerDist events p []
+	//Mock finality.beginblock.UpdatePowerDist newDc p
 
 	// record voting power and cache for this height
 	k.RecordVotingPowerAndCache(ctx, newDc)

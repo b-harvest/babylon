@@ -375,9 +375,9 @@ func (l *BtcLightClient) InsertHeaders(readStore BtcChainReadStore, headers []*w
 
 		_, err := readStore.GetHeaderByHash(&firstExtHeaderHash)
 
-		if err == nil {
-			return nil, ErrForkStartWithKnownHeader.Wrapf("first header of extension chain is known header: %s", firstExtHeaderHash.String())
-		}
+		//if err == nil {
+		//	return nil, ErrForkStartWithKnownHeader.Wrapf("first header of extension chain is known header: %s", firstExtHeaderHash.String())
+		//}
 
 		// here we received potential new fork
 		parentHash := bbn.NewBTCHeaderHashBytesFromChainhash(&firstHeaderOfExtensionChain.PrevBlock)
