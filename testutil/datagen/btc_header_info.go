@@ -314,7 +314,7 @@ func GenRandBtcChainInsertingInKeeperMock(
 	chainLength uint32,
 ) (*btclightclienttypes.BTCHeaderInfo, *BTCHeaderPartialChain) {
 	// TODO: need to considering non-deterministic randomness
-	r := rand.New(rand.NewSource(int64(123)))
+	r := rand.New(rand.NewSource(int64(chainLength)))
 	genesisHeader := NewBTCHeaderChainWithLength(r, initialHeight, 0, 1)
 	genesisHeaderInfo := genesisHeader.GetChainInfo()[0]
 	k.SetBaseBTCHeader(ctx, *genesisHeaderInfo)

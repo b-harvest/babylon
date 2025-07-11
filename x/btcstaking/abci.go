@@ -290,9 +290,10 @@ func CreateMsgDelegationForParams(
 func BeginBlocker(ctx context.Context, k keeper.Keeper) error {
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyBeginBlocker)
 
-	//babylonHeight := uint64(sdk.UnwrapSDKContext(ctx).HeaderInfo().Height)
-	//r := rand.New(rand.NewSource(int64(babylonHeight)))
-	r := rand.New(rand.NewSource(int64(111111)))
+	// TODO: need to considering non-deterministic randomness
+	babylonHeight := uint64(sdk.UnwrapSDKContext(ctx).HeaderInfo().Height)
+	r := rand.New(rand.NewSource(int64(babylonHeight)))
+	//r := rand.New(rand.NewSource(int64(111111)))
 	params := k.GetParams(ctx)
 	msg, _ := CreateMsgDelegationForParams(r, &params)
 
