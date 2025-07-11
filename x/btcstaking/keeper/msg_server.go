@@ -277,6 +277,97 @@ func (ms msgServer) CreateBTCDelegation(goCtx context.Context, req *types.MsgCre
 	return &types.MsgCreateBTCDelegationResponse{}, nil
 }
 
+// CreateBTCDelegation creates a BTC delegation
+func (k Keeper) CreateBTCDelegationMock(goCtx context.Context, req *types.MsgCreateBTCDelegation) (*types.MsgCreateBTCDelegationResponse, error) {
+	//defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), types.MetricsKeyCreateBTCDelegation)
+
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	// 1. Parse the message into better domain format
+	parsedMsg, err := types.ParseCreateDelegationMessage(req)
+
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	// 2. Basic stateless checks
+	// - verify proof of possession
+	if err := parsedMsg.ParsedPop.Verify(parsedMsg.StakerAddress, parsedMsg.StakerPK.BIP340PubKey, k.btcNet); err != nil {
+		return nil, types.ErrInvalidProofOfPossession.Wrap(err.Error())
+	}
+
+	// 3. Check if it is not duplicated staking tx
+	stakingTxHash := parsedMsg.StakingTx.Transaction.TxHash()
+	delegation := k.getBTCDelegation(ctx, stakingTxHash)
+	if delegation != nil {
+		return nil, types.ErrReusedStakingTx.Wrapf("duplicated tx hash: %s", stakingTxHash.String())
+	}
+
+	// 4. Check finality providers to which message delegate
+	// Ensure all finality providers are known to Babylon, are not slashed
+	//for _, _ := range parsedMsg.FinalityProviderKeys.PublicKeysBbnFormat {
+	//	// get this finality provider
+	//	fps, _ := k.GetAllFinalityProviders(ctx)
+	//	fmt.Println("Mock fps", len(*fps), fps)
+	//	//fp, err := k.GetFinalityProvider(ctx, fpBTCPK)
+	//
+	//	//if err != nil {
+	//	//	return nil, err
+	//	//}
+	//	// ensure the finality provider is not slashed
+	//	//if fp.IsSlashed() {
+	//	//	return nil, types.ErrFpAlreadySlashed.Wrapf("finality key: %s", fpBTCPK.MarshalHex())
+	//	//}
+	//}
+
+	// 6. Validate the staking tx against the params
+	//paramsValidationResult, err := types.ValidateParsedMessageAgainstTheParams(parsedMsg, params, msk.btcNet)
+
+	// everything is good, if the staking tx is not included on BTC consume additinal
+	// gas
+	//if !parsedMsg.IsIncludedOnBTC() {
+	//	ctx.GasMeter().ConsumeGas(params.DelegationCreationBaseGasFee, "delegation creation fee")
+	//}
+
+	// 7.all good, construct BTCDelegation and insert BTC delegation
+	// NOTE: the BTC delegation does not have voting power yet. It will
+	// have voting power only when it receives a covenant signatures
+	newBTCDel := &types.BTCDelegation{
+		StakerAddr:  parsedMsg.StakerAddress.String(),
+		BtcPk:       parsedMsg.StakerPK.BIP340PubKey,
+		Pop:         parsedMsg.ParsedPop,
+		FpBtcPkList: parsedMsg.FinalityProviderKeys.PublicKeysBbnFormat,
+		StakingTime: uint32(parsedMsg.StakingTime),
+		//StartHeight:      timeInfo.StartHeight,
+		//EndHeight:        timeInfo.EndHeight,
+		TotalSat:  uint64(parsedMsg.StakingValue),
+		StakingTx: parsedMsg.StakingTx.TransactionBytes,
+		//StakingOutputIdx: paramsValidationResult.StakingOutputIdx,
+		SlashingTx:    types.NewBtcSlashingTxFromBytes(parsedMsg.StakingSlashingTx.TransactionBytes),
+		DelegatorSig:  parsedMsg.StakerStakingSlashingTxSig.BIP340Signature,
+		UnbondingTime: uint32(parsedMsg.UnbondingTime),
+		CovenantSigs:  nil, // NOTE: covenant signature will be submitted in a separate msg by covenant
+		BtcUndelegation: &types.BTCUndelegation{
+			//UnbondingTx: parsedMsg.UnbondingTx.TransactionBytes,
+			//SlashingTx:               types.NewBtcSlashingTxFromBytes(parsedMsg.UnbondingSlashingTx.TransactionBytes),
+			//DelegatorSlashingSig:     parsedMsg.StakerUnbondingSlashingSig.BIP340Signature,
+			CovenantSlashingSigs:     nil, // NOTE: covenant signature will be submitted in a separate msg by covenant
+			CovenantUnbondingSigList: nil, // NOTE: covenant signature will be submitted in a separate msg by covenant
+			DelegatorUnbondingInfo:   nil,
+		},
+		//ParamsVersion: paramsVersion,      // version of the params against which delegation was validated
+		//BtcTipHeight:  timeInfo.TipHeight, // height of the BTC light client tip at the time of the delegation creation
+	}
+
+	// add this BTC delegation, and emit corresponding events
+	if err := k.AddBTCDelegation(ctx, newBTCDel); err != nil {
+		fmt.Println("Mock: AddBTCDelegation")
+		panic(fmt.Errorf("failed to add BTC delegation that has passed verification: %w", err))
+	}
+
+	return &types.MsgCreateBTCDelegationResponse{}, nil
+}
+
 // AddBTCDelegationInclusionProof adds inclusion proof of the given delegation on BTC chain
 func (ms msgServer) AddBTCDelegationInclusionProof(
 	goCtx context.Context,

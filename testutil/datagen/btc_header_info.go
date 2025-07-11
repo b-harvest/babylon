@@ -313,7 +313,8 @@ func GenRandBtcChainInsertingInKeeperMock(
 	initialHeight uint32,
 	chainLength uint32,
 ) (*btclightclienttypes.BTCHeaderInfo, *BTCHeaderPartialChain) {
-	r := rand.New(rand.NewSource(123456789))
+	// TODO: need to considering non-deterministic randomness
+	r := rand.New(rand.NewSource(int64(123)))
 	genesisHeader := NewBTCHeaderChainWithLength(r, initialHeight, 0, 1)
 	genesisHeaderInfo := genesisHeader.GetChainInfo()[0]
 	k.SetBaseBTCHeader(ctx, *genesisHeaderInfo)
@@ -322,13 +323,17 @@ func GenRandBtcChainInsertingInKeeperMock(
 		genesisHeaderInfo,
 		chainLength,
 	)
-	err := k.InsertHeadersWithHookAndEvents(ctx, randomChain.ChainToBytes())
-	if err != nil {
-		panic(err)
-	}
-	tip := k.GetTipInfo(ctx)
-	randomChainTipInfo := randomChain.GetTipInfo()
-	fmt.Println("GenRandBtcChainInsertingInKeeper", tip, randomChainTipInfo)
+	fmt.Println("genesisHeader", genesisHeaderInfo.String())
+	fmt.Println("randomChain.ChainToBytes()", randomChain.ChainToBytes())
+	//err := k.InsertHeadersWithHookAndEvents(ctx, randomChain.ChainToBytes())
+	//if err != nil {
+	//	panic(err)
+	//}
+	k.GetTipInfo(ctx)
+	randomChain.GetTipInfo()
+	//tip := k.GetTipInfo(ctx)
+	//randomChainTipInfo := randomChain.GetTipInfo()
+	fmt.Println("GenRandBtcChainInsertingInKeeper")
 	return genesisHeaderInfo, randomChain
 }
 

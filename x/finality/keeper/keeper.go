@@ -11,6 +11,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/babylonlabs-io/babylon/v2/x/finality/types"
+	"github.com/babylonlabs-io/babylon/v2/testutil/datagen"
+	bbn "github.com/babylonlabs-io/babylon/v2/types"
+	"math/rand"
 )
 
 type (
@@ -66,10 +69,81 @@ func NewKeeper(
 	}
 }
 
+func AddFinalitySigMockFuzz(ctx context.Context, k Keeper) {
+	// TODO: i, iterating
+	cnt := 0
+	for i := 0; i < 100; i++ {
+		r := rand.New(rand.NewSource(int64(i)))
+		//bsKeeper := types.NewMockBTCStakingKeeper(ctrl)
+		//bsKeeper.EXPECT().UpdateFinalityProvider(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		//cKeeper := types.NewMockCheckpointingKeeper(ctrl)
+		//iKeeper := types.NewMockIncentiveKeeper(ctrl)
+		//iKeeper.EXPECT().IndexRefundableMsg(gomock.Any(), gomock.Any()).AnyTimes()
+		//fKeeper, ctx := keepertest.FinalityKeeper(t, bsKeeper, iKeeper, cKeeper)
+		//ms := keeper.NewMsgServerImpl(*fKeeper)
+
+		// create and register a random finality provider
+		btcSK, btcPK, _ := datagen.GenRandomBTCKeyPair(r)
+		//fp, _ := datagen.GenRandomFinalityProviderWithBTCSK(r, btcSK)
+		fpBTCPK := bbn.NewBIP340PubKeyFromBTCPK(btcPK)
+		//fpBTCPKBytes := fpBTCPK.MustMarshal()
+
+		// set committed epoch num
+		//committedEpochNum := datagen.GenRandomEpochNum(r) + 1
+
+		// commit some public randomness
+		startHeight := uint64(0)
+		numPubRand := uint64(200)
+		//randListInfo, msgCommitPubRandList, err := datagen.GenRandomMsgCommitPubRandList(r, btcSK, startHeight, numPubRand)
+		randListInfo, _, _ := datagen.GenRandomMsgCommitPubRandList(r, btcSK, startHeight, numPubRand)
+		//_, err = ms.CommitPubRandList(ctx, msgCommitPubRandList)
+
+		// generate a vote
+		blockHeight := startHeight + uint64(1)
+		blockAppHash := datagen.GenRandomByteArray(r, 32)
+		// TODO: non-dterminism
+		signer := datagen.GenRandomAccountWithSeed(r).Address
+		//fmt.Println(signer)
+		msg, _ := datagen.NewMsgAddFinalitySig(signer, btcSK, startHeight, blockHeight, randListInfo, blockAppHash)
+		//ctx = ctx.WithHeaderInfo(header.Info{Height: int64(blockHeight)})
+		//fKeeper.IndexBlock(ctx)
+
+		//// Case 0: fail if the committed epoch is not finalized
+		//lastFinalizedEpoch := datagen.RandomInt(r, int(committedEpochNum))
+		//fKeeper.SetVotingPower(ctx, fpBTCPKBytes, blockHeight, 1)
+		//_, err = ms.AddFinalitySig(ctx, msg)
+		//
+		//// set the committed epoch finalized for the rest of the cases
+		//lastFinalizedEpoch = datagen.GenRandomEpochNum(r) + committedEpochNum
+		//
+		//// Case 1: fail if the finality provider does not have voting power
+		//fKeeper.SetVotingPower(ctx, fpBTCPKBytes, blockHeight, 0)
+		//_, err = ms.AddFinalitySig(ctx, msg)
+		//
+		//// mock voting power
+		//fKeeper.SetVotingPower(ctx, fpBTCPKBytes, blockHeight, 1)
+
+		// Case 3: successful if the finality provider has voting power and has not casted this vote yet
+		// index this block first
+		//ctx = ctx.WithHeaderInfo(header.Info{Height: int64(blockHeight), AppHash: blockAppHash})
+		k.IndexBlock(ctx)
+		// add vote and it should work
+		_, err := k.AddFinalitySigMock(ctx, msg)
+		// query this vote and assert
+		k.GetSig(ctx, blockHeight, fpBTCPK)
+		if err == nil {
+			cnt += 1
+		}
+	}
+	fmt.Println("AddFinalitySigMock", cnt)
+}
+
 func (k Keeper) BeginBlocker(ctx context.Context) error {
-	// TODO: // GenRandBtcChainInsertingInKeeperMock ->, next finality.BeginBlocker
 	// update voting power distribution
 	k.UpdatePowerDist(ctx)
+
+	// Add FinSig for tally
+	AddFinalitySigMockFuzz(ctx, k)
 
 	return nil
 }

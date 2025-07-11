@@ -18,13 +18,14 @@ func (k *Keeper) HaltIfBtcReorgLargerThanConfirmationDepth(ctx context.Context) 
 		return
 	}
 
+	// TODO: Mock: check if the reorg is still continue
 	if largestReorg.BlockDiff >= p.BtcConfirmationDepth {
-		msg := fmt.Sprintf(
+		fmt.Printf(
 			"Reorg %d is larger than BTC confirmation Depth %d.\n%s\n%s", largestReorg.BlockDiff, p.BtcConfirmationDepth,
 			fmt.Sprintf("'From' -> %d - %s", largestReorg.RollbackFrom.Height, largestReorg.RollbackFrom.Hash.MarshalHex()),
 			fmt.Sprintf("'To' -> %d - %s", largestReorg.RollbackTo.Height, largestReorg.RollbackTo.Hash.MarshalHex()),
 		)
-		panic(msg)
+		//panic(msg)
 	}
 }
 

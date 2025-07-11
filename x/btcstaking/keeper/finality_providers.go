@@ -89,6 +89,29 @@ func (k Keeper) GetFinalityProvider(ctx context.Context, fpBTCPK []byte) (*types
 	k.cdc.MustUnmarshal(fpBytes, &fp)
 	return &fp, nil
 }
+func (k Keeper) GetAllFinalityProviders(ctx context.Context) ([]*types.FinalityProvider, error) {
+	store := k.finalityProviderStore(ctx)
+	//store.Iterator()
+	//if !k.HasFinalityProvider(ctx, fpBTCPK) {
+	//	return nil, types.ErrFpNotFound
+	//}
+	iter := store.Iterator(nil, nil)
+	defer iter.Close()
+
+	// the iterator starts from the highest epoch number
+	// once it gets to an epoch where the status is CONFIRMED,
+	// all the lower epochs will be CONFIRMED
+	fps := make([]*types.FinalityProvider, 0)
+	for ; iter.Valid(); iter.Next() {
+		var fp types.FinalityProvider
+		if err := fp.Unmarshal(iter.Value()); err != nil {
+			return nil, err
+		}
+		fps = append(fps, &fp)
+	}
+
+	return fps, nil
+}
 
 // SlashFinalityProvider slashes a finality provider with the given PK
 // A slashed finality provider will not have voting power

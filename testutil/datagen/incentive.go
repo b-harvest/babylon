@@ -78,7 +78,7 @@ func GenRandomGauge(r *rand.Rand) *itypes.Gauge {
 }
 
 func GenRandomAddrAndSat(r *rand.Rand) (string, uint64) {
-	return GenRandomAccount().Address, RandomInt(r, 1000) + 1
+	return GenRandomAccountWithSeed(r).Address, RandomInt(r, 1000) + 1
 }
 
 func GenRandomFinalityProviderDistInfo(r *rand.Rand) (
@@ -107,7 +107,7 @@ func GenRandomFinalityProviderDistInfo(r *rand.Rand) (
 
 func GenRandomVotingPowerDistCache(r *rand.Rand, maxFPs uint32) (
 	dc *ftypes.VotingPowerDistCache,
-	// fpAddr => delAddr => totalSat
+// fpAddr => delAddr => totalSat
 	btcTotalSatByDelAddressByFpAddress map[string]map[string]uint64,
 	err error,
 ) {
@@ -130,8 +130,8 @@ func GenRandomVotingPowerDistCache(r *rand.Rand, maxFPs uint32) (
 
 func GenRandomCheckpointAddressPair(r *rand.Rand) *btcctypes.CheckpointAddressPair {
 	return &btcctypes.CheckpointAddressPair{
-		Submitter: GenRandomAccount().GetAddress(),
-		Reporter:  GenRandomAccount().GetAddress(),
+		Submitter: GenRandomAccountWithSeed(r).GetAddress(),
+		Reporter:  GenRandomAccountWithSeed(r).GetAddress(),
 	}
 }
 

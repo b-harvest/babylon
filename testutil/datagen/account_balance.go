@@ -7,10 +7,20 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	"math/rand"
 )
 
 func GenRandomAccount() *authtypes.BaseAccount {
 	senderPrivKey := sec256k1.GenPrivKey()
+	acc := authtypes.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), senderPrivKey.PubKey(), 0, 0)
+	return acc
+}
+
+// GenRandomAccountWithSeed generates a deterministic random account using the provided rand.Source.
+func GenRandomAccountWithSeed(r *rand.Rand) *authtypes.BaseAccount {
+	privKeyBytes := make([]byte, 32)
+	r.Read(privKeyBytes)
+	senderPrivKey := sec256k1.PrivKey{Key: privKeyBytes}
 	acc := authtypes.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), senderPrivKey.PubKey(), 0, 0)
 	return acc
 }

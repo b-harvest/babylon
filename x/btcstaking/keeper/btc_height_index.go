@@ -8,6 +8,7 @@ import (
 	"github.com/babylonlabs-io/babylon/v2/x/btcstaking/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"fmt"
 )
 
 // IndexBTCHeight indexes the current BTC height, and saves it to KVStore
@@ -19,6 +20,7 @@ func (k Keeper) IndexBTCHeight(ctx context.Context) {
 	}
 	btcHeight := btcTip.Height
 	store := k.btcHeightStore(ctx)
+	fmt.Println("Tracking: btcstaking.beginblock IndexBTCHeight", babylonHeight, btcHeight)
 	store.Set(sdk.Uint64ToBigEndian(babylonHeight), sdk.Uint64ToBigEndian(uint64(btcHeight)))
 }
 

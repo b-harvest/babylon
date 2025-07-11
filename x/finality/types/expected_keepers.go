@@ -15,6 +15,7 @@ type BTCStakingKeeper interface {
 	GetCurrentBTCHeight(ctx context.Context) uint32
 	GetBTCHeightAtBabylonHeight(ctx context.Context, babylonHeight uint64) uint32
 	GetFinalityProvider(ctx context.Context, fpBTCPK []byte) (*bstypes.FinalityProvider, error)
+	GetAllFinalityProviders(ctx context.Context) ([]*bstypes.FinalityProvider, error)
 	HasFinalityProvider(ctx context.Context, fpBTCPK []byte) bool
 	SlashFinalityProvider(ctx context.Context, fpBTCPK []byte) error
 	GetBTCDelegation(ctx context.Context, stakingTxHashStr string) (*bstypes.BTCDelegation, error)

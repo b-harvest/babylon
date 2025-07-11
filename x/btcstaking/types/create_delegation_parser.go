@@ -2,8 +2,6 @@ package types
 
 import (
 	"fmt"
-	"math"
-
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/btcutil"
@@ -172,72 +170,22 @@ func ParseCreateDelegationMessage(msg *MsgCreateBTCDelegation) (*ParsedCreateDel
 
 	unbondingTx, err := NewBtcTransaction(msg.UnbondingTx)
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to deserialize unbonding tx: %v", err)
-	}
+	//if err != nil {
+	//	return nil, fmt.Errorf("failed to deserialize unbonding tx: %v", err)
+	//}
 
-	unbondingSlashingTx, err := NewBtcTransaction(msg.UnbondingSlashingTx.MustMarshal())
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to deserialize unbonding slashing tx: %v", err)
-	}
-
-	// 2. Check all timelocks
-	if msg.UnbondingTime > math.MaxUint16 {
-		return nil, fmt.Errorf("unbonding time %d must be lower than %d", msg.UnbondingTime, math.MaxUint16)
-	}
-
-	if msg.StakingTime > math.MaxUint16 {
-		return nil, fmt.Errorf("staking time %d must be lower than %d", msg.StakingTime, math.MaxUint16)
-	}
+	//unbondingSlashingTx, err := NewBtcTransaction(msg.UnbondingSlashingTx.MustMarshal())
 
 	// 3. Parse staker address
 	stakerAddr, err := sdk.AccAddressFromBech32(msg.StakerAddr)
 
-	if err != nil {
-		return nil, fmt.Errorf("invalid staker address %s: %v", msg.StakerAddr, err)
-	}
-
-	// 4. Parse proof of possession
-	if msg.Pop == nil {
-		return nil, fmt.Errorf("empty proof of possession")
-	}
-
-	if err := msg.Pop.ValidateBasic(); err != nil {
-		return nil, err
-	}
-
 	// 5. Parse signatures for slashing transaction
 	stakerStakingSlashingTxSig, err := NewParsedBIP340Signature(msg.DelegatorSlashingSig)
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse staker staking slashing signature: %v", err)
-	}
-
 	stakerUnbondingSlashingSig, err := NewParsedBIP340Signature(msg.DelegatorUnbondingSlashingSig)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse staker unbonding slashing signature: %v", err)
-	}
 
 	// 6. Parse finality provider public keys and check for duplicates
 	fpPKs, err := NewParsedPublicKeyList(msg.FpBtcPkList)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse finality provider public keys: %v", err)
-	}
-
-	duplicate, err := ExistsDup(fpPKs.PublicKeysBbnFormat)
-	if err != nil {
-		return nil, fmt.Errorf("error in FPs public keys: %v", err)
-	}
-	if duplicate {
-		return nil, ErrDuplicatedFp
-	}
-
-	if len(fpPKs.PublicKeysBbnFormat) != 1 {
-		return nil, ErrTooManyFpKeys
-	}
 
 	// 7. Parse staker public key
 	stakerPK, err := NewParsedPublicKey(msg.BtcPk)
@@ -267,7 +215,7 @@ func ParseCreateDelegationMessage(msg *MsgCreateBTCDelegation) (*ParsedCreateDel
 		UnbondingTx:                unbondingTx,
 		UnbondingTime:              uint16(msg.UnbondingTime),
 		UnbondingValue:             btcutil.Amount(msg.UnbondingValue),
-		UnbondingSlashingTx:        unbondingSlashingTx,
+		//UnbondingSlashingTx:        unbondingSlashingTx,
 		StakerUnbondingSlashingSig: stakerUnbondingSlashingSig,
 		FinalityProviderKeys:       fpPKs,
 		ParsedPop:                  msg.Pop,

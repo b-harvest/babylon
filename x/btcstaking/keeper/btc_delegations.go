@@ -179,6 +179,7 @@ func (k Keeper) setBTCDelegation(ctx context.Context, btcDel *types.BTCDelegatio
 	stakingTxHash := btcDel.MustGetStakingTxHash()
 	btcDelBytes := k.cdc.MustMarshal(btcDel)
 	store.Set(stakingTxHash[:], btcDelBytes)
+	fmt.Println("Mock setBTCDelegation")
 }
 
 // GetBTCDelegation gets the BTC delegation with a given staking tx hash

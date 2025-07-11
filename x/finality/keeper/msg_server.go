@@ -59,6 +59,155 @@ func (ms msgServer) ResumeFinalityProposal(goCtx context.Context, req *types.Msg
 	return &types.MsgResumeFinalityProposalResponse{}, nil
 }
 
+func (ms Keeper) AddFinalitySigMock(goCtx context.Context, req *types.MsgAddFinalitySig) (*types.MsgAddFinalitySigResponse, error) {
+	if err := req.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	indexedBlock, err := ms.GetBlock(ctx, req.BlockHeight)
+	if err != nil {
+		return nil, err
+	}
+
+	fpPK := req.FpBtcPk
+
+	// ensure the finality provider exists
+	fps, err := ms.BTCStakingKeeper.GetAllFinalityProviders(ctx)
+	fp := fps[0]
+	//fp, err := ms.BTCStakingKeeper.GetFinalityProvider(ctx, req.FpBtcPk.MustMarshal())
+	//if err != nil {
+	//	return nil, err
+	//}
+	// ensure the finality provider is not slashed at this time point
+	// NOTE: it's possible that the finality provider equivocates for height h, and the signature is processed at
+	// height h' > h. In this case:
+	// - Babylon should reject any new signature from this finality provider, since it's known to be adversarial
+	// - Babylon should set its voting power since height h'+1 to be zero, due to the same reason
+	// - Babylon should NOT set its voting power between [h, h'] to be zero, since
+	//   - Babylon BTC staking ensures safety upon 2f+1 votes, *even if* f of them are adversarial. This is
+	//     because as long as a block gets 2f+1 votes, any other block with 2f+1 votes has a f+1 quorum
+	//     intersection with this block, contradicting to the assumption and leading to the safety proof.
+	//     This ensures slashable safety together with EOTS, thus does not undermine Babylon's security guarantee.
+	//   - Due to this reason, when tallying a block, Babylon finalises this block upon 2f+1 votes. If we
+	//     modify voting power table in the history, some finality decisions might be contradicting to the
+	//     signature set and voting power table.
+	//   - To fix the above issue, Babylon has to allow finalise and unfinalise blocks. However, this means
+	//     Babylon will lose safety under an adaptive adversary corrupting even 1 finality provider. It can simply
+	//     corrupt a new finality provider and equivocate a historical block over and over again, making a previous block
+	//     unfinalisable forever
+	//if fp.IsSlashed() {
+	//	return nil, bstypes.ErrFpAlreadySlashed.Wrapf("finality provider public key: %s", fpPK.MarshalHex())
+	//}
+	//
+	//if fp.IsJailed() {
+	//	return nil, bstypes.ErrFpAlreadyJailed.Wrapf("finality provider public key: %s", fpPK.MarshalHex())
+	//}
+
+	// ensure the finality provider has voting power at this height
+	ms.GetVotingPower(ctx, fpPK.MustMarshal(), req.BlockHeight)
+
+	existingSig, err := ms.GetSig(ctx, req.BlockHeight, fpPK)
+	if err == nil && existingSig.Equals(req.FinalitySig) {
+		//ms.Logger(ctx).Debug("Received duplicated finality vote", "block height", req.BlockHeight, "finality provider", req.FpBtcPk)
+		//// exactly same vote already exists, return error
+		//// this is to secure the tx refunding against duplicated messages
+		//return nil, types.ErrDuplicatedFinalitySig
+	}
+
+	// find the timestamped public randomness commitment for this height from this finality provider
+	_, err = ms.GetTimestampedPubRandCommitForHeight(ctx, req.FpBtcPk, req.BlockHeight)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	// verify the finality signature message w.r.t. the public randomness commitment
+	// including the public randomness inclusion proof and the finality signature
+	//if err := types.VerifyFinalitySig(req, prCommit); err != nil {
+	//	//return nil, err
+	//}
+	// the public randomness is good, set the public randomness
+	ms.SetPubRand(ctx, req.FpBtcPk, req.BlockHeight, *req.PubRand)
+
+	// verify whether the voted block is a fork or not
+	if !bytes.Equal(indexedBlock.AppHash, req.BlockAppHash) {
+		// the finality provider votes for a fork!
+
+		// construct evidence
+		evidence := &types.Evidence{
+			FpBtcPk:              req.FpBtcPk,
+			BlockHeight:          req.BlockHeight,
+			PubRand:              req.PubRand,
+			CanonicalAppHash:     indexedBlock.AppHash,
+			CanonicalFinalitySig: nil,
+			ForkAppHash:          req.BlockAppHash,
+			ForkFinalitySig:      req.FinalitySig,
+		}
+
+		// if this finality provider has also signed canonical block, slash it
+		canonicalSig, err := ms.GetSig(ctx, req.BlockHeight, fpPK)
+		if err == nil {
+			// set canonial sig
+			evidence.CanonicalFinalitySig = canonicalSig
+			// slash this finality provider, including setting its voting power to
+			// zero, extracting its BTC SK, and emit an event
+			ms.slashFinalityProvider(ctx, req.FpBtcPk, evidence)
+		}
+
+		// save evidence
+		ms.SetEvidence(ctx, evidence)
+
+		// NOTE: we should NOT return error here, otherwise the state change triggered in this tx
+		// (including the evidence) will be rolled back
+		return &types.MsgAddFinalitySigResponse{}, nil
+	}
+
+	// this signature is good, add vote to DB
+	ms.SetSig(ctx, req.BlockHeight, fpPK, req.FinalitySig)
+
+	// update `HighestVotedHeight` if needed
+	if fp.HighestVotedHeight < uint32(req.BlockHeight) {
+		fp.HighestVotedHeight = uint32(req.BlockHeight)
+		ms.BTCStakingKeeper.UpdateFinalityProvider(ctx, fp)
+		//if err != nil {
+		//	return nil, fmt.Errorf("failed to update the finality provider: %w", err)
+		//}
+	}
+
+	// if this finality provider has signed the canonical block before,
+	// slash it via extracting its secret key, and emit an event
+	if ms.HasEvidence(ctx, req.FpBtcPk, req.BlockHeight) {
+		// the finality provider has voted for a fork before!
+		// If this evidence is at the same height as this signature, slash this finality provider
+
+		// get evidence
+		evidence, _ := ms.GetEvidence(ctx, req.FpBtcPk, req.BlockHeight)
+		//if err != nil {
+		//	panic(fmt.Errorf("failed to get evidence despite HasEvidence returns true"))
+		//}
+
+		// set canonical sig to this evidence
+		evidence.CanonicalFinalitySig = req.FinalitySig
+		ms.SetEvidence(ctx, evidence)
+
+		// slash this finality provider, including setting its voting power to
+		// zero, extracting its BTC SK, and emit an event
+		ms.slashFinalityProvider(ctx, req.FpBtcPk, evidence)
+
+		// NOTE: we should NOT return error here, otherwise the state change triggered in this tx
+		// (including the evidence and slashing) will be rolled back
+		return &types.MsgAddFinalitySigResponse{}, nil
+	}
+
+	// at this point, the finality signature is 1) valid, 2) over a canonical block,
+	// and 3) not duplicated.
+	// Thus, we can safely consider this message as refundable
+	ms.IncentiveKeeper.IndexRefundableMsg(ctx, req)
+
+	return &types.MsgAddFinalitySigResponse{}, nil
+}
+
 // AddFinalitySig adds a new vote to a given block
 func (ms msgServer) AddFinalitySig(goCtx context.Context, req *types.MsgAddFinalitySig) (*types.MsgAddFinalitySigResponse, error) {
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), types.MetricsKeyAddFinalitySig)

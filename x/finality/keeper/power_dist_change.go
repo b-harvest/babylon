@@ -50,9 +50,9 @@ func (k Keeper) UpdatePowerDist(ctx context.Context) {
 	// to construct the new distribution
 	newDc := k.ProcessAllPowerDistUpdateEvents(ctx, dc, events)
 
-	fmt.Println("Mock finality.beginblock.UpdatePowerDist lastBTCTipHeight p", lastBTCTipHeight)
-	fmt.Println("Mock finality.beginblock.UpdatePowerDist events p", events)
-	fmt.Println("Mock finality.beginblock.UpdatePowerDist newDc p", newDc)
+	//fmt.Println("Mock finality.beginblock.UpdatePowerDist lastBTCTipHeight p", lastBTCTipHeight)
+	//fmt.Println("Mock finality.beginblock.UpdatePowerDist events p", events)
+	//fmt.Println("Mock finality.beginblock.UpdatePowerDist newDc p", newDc)
 	//Mock finality.beginblock.UpdatePowerDist lastBTCTipHeight p 14
 	//Mock finality.beginblock.UpdatePowerDist events p []
 	//Mock finality.beginblock.UpdatePowerDist newDc p

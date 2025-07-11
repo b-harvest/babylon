@@ -6,6 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/babylonlabs-io/babylon/v2/x/finality/types"
+	"fmt"
 )
 
 // TallyBlocks tries to finalise all blocks that are non-finalised AND have a non-nil
@@ -57,6 +58,7 @@ func (k Keeper) finalizeBlock(ctx context.Context, block *types.IndexedBlock) {
 	k.setNextHeightToFinalize(ctx, block.Height+1)
 	// record the last finalized height metric
 	types.RecordLastFinalizedHeight(block.Height)
+	fmt.Println("finality finalizeBlock", block)
 }
 
 // tally checks whether a block with the given finality provider set and votes reaches a quorum or not

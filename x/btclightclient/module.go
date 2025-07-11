@@ -19,7 +19,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 
-	"github.com/babylonlabs-io/babylon/v2/testutil/datagen"
+	//"github.com/babylonlabs-io/babylon/v2/testutil/datagen"
 	"github.com/babylonlabs-io/babylon/v2/x/btclightclient/client/cli"
 	"github.com/babylonlabs-io/babylon/v2/x/btclightclient/keeper"
 	"github.com/babylonlabs-io/babylon/v2/x/btclightclient/types"
@@ -160,8 +160,13 @@ func (AppModule) ConsensusVersion() uint64 { return 1 }
 func (am AppModule) BeginBlock(ctx context.Context) error {
 	// mock, done, next finality.BeginBlocker
 	fmt.Println("Mock: finality BeginBlocker GenRandBtcChainInsertingInKeeper")
-	height := uint64(sdk.UnwrapSDKContext(ctx).HeaderInfo().Height)
-	datagen.GenRandBtcChainInsertingInKeeperMock(am.keeper, ctx, 10, uint32(height))
+	//height := uint64(sdk.UnwrapSDKContext(ctx).HeaderInfo().Height)
+	////initialHeight := uint32(10)
+	////if height > 10 {
+	////	initialHeight = uint32(height) - 1
+	////}
+	////// TODO: find non-determ
+	////datagen.GenRandBtcChainInsertingInKeeperMock(am.keeper, ctx, initialHeight, uint32(height))
 	return nil
 }
 

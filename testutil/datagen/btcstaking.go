@@ -73,7 +73,7 @@ func GenRandomMsgCreateFinalityProvider(r *rand.Rand) (*bstypes.MsgCreateFinalit
 	if err != nil {
 		return nil, err
 	}
-	return GenRandomCreateFinalityProviderMsgWithBTCBabylonSKs(r, btcSK, GenRandomAccount().GetAddress())
+	return GenRandomCreateFinalityProviderMsgWithBTCBabylonSKs(r, btcSK, GenRandomAccountWithSeed(r).GetAddress())
 }
 
 func CreateNFinalityProviders(r *rand.Rand, t *testing.T, n int) []*bstypes.FinalityProvider {
@@ -87,7 +87,7 @@ func CreateNFinalityProviders(r *rand.Rand, t *testing.T, n int) []*bstypes.Fina
 }
 
 func GenRandomFinalityProviderWithBTCSK(r *rand.Rand, btcSK *btcec.PrivateKey) (*bstypes.FinalityProvider, error) {
-	return GenRandomFinalityProviderWithBTCBabylonSKs(r, btcSK, GenRandomAccount().GetAddress())
+	return GenRandomFinalityProviderWithBTCBabylonSKs(r, btcSK, GenRandomAccountWithSeed(r).GetAddress())
 }
 
 func GenRandomCommission(r *rand.Rand) sdkmath.LegacyDec {
@@ -175,7 +175,7 @@ func GenRandomBTCDelegation(
 	if err != nil {
 		return nil, err
 	}
-	staker := GenRandomAccount()
+	staker := GenRandomAccountWithSeed(r)
 
 	// staking/slashing tx
 	stakingSlashingInfo := GenBTCStakingSlashingInfo(
