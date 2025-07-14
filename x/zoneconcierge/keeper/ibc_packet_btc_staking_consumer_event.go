@@ -91,6 +91,7 @@ func (k Keeper) BroadcastBTCStakingConsumerEvents(
 			}
 		}
 
+		// TODO: remove
 		k.bsKeeper.DeleteBTCStakingConsumerIBCPacket(ctx, consumerID)
 	}
 

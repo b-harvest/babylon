@@ -136,6 +136,7 @@ func (im IBCModule) OnChanCloseInit(
 	portID,
 	channelID string,
 ) error {
+	// TODO: considering add close logic
 	// Disallow user-initiated channel closing for channels
 	return errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "user cannot close channel")
 }
@@ -146,6 +147,7 @@ func (im IBCModule) OnChanCloseConfirm(
 	portID,
 	channelID string,
 ) error {
+	// TODO: considering add close logic
 	return nil
 }
 
