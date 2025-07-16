@@ -21,6 +21,7 @@ const (
 	LabelDestinationChannel = "destination_channel"
 )
 
+// TODO: add argument for only record mode when inactive channel
 // SendIBCPacket sends an IBC packet to a channel
 // (adapted from https://github.com/cosmos/ibc-go/blob/v5.0.0/modules/apps/transfer/keeper/relay.go)
 func (k Keeper) SendIBCPacket(ctx context.Context, channel channeltypes.IdentifiedChannel, packetData *types.OutboundPacket) error {

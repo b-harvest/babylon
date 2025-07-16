@@ -76,6 +76,7 @@ func (d *IBCHeaderDecorator) PostHandle(ctx sdk.Context, tx sdk.Tx, simulate, su
 	}
 	// ignore unsuccessful tx
 	// NOTE: tx with a misbehaving header will still succeed, but will make the client to be frozen
+	// TODO: need to test for forkcase == !success on client module
 	if !success {
 		return next(ctx, tx, simulate, success)
 	}

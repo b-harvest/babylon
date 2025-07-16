@@ -14,6 +14,7 @@ func (k Keeper) GetAllChannels(ctx context.Context) []channeltypes.IdentifiedCha
 // GetAllOpenZCChannels returns all open channels that are connected to ZoneConcierge's port
 func (k Keeper) GetAllOpenZCChannels(ctx context.Context) []channeltypes.IdentifiedChannel {
 	zcPort := k.GetPort(ctx)
+	// TODO: refactor to use GetAllChannelsWithPortPrefix for iterating efficiently
 	channels := k.GetAllChannels(ctx)
 
 	openZCChannels := []channeltypes.IdentifiedChannel{}
