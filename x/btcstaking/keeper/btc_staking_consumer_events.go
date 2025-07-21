@@ -55,6 +55,7 @@ func (k Keeper) AddBTCStakingConsumerEvents(ctx context.Context, consumerID stri
 		}
 	}
 
+	// TODO: add epoch indexing for ordering, missing tracking
 	eventsBytes := k.cdc.MustMarshal(&packet)
 	store.Set(storeKey, eventsBytes)
 
