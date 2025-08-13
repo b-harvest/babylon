@@ -21,9 +21,15 @@ func (k Keeper) TallyBlocks(ctx context.Context, maxFinalizedBlocks uint64) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	activatedHeight, err := k.GetBTCStakingActivatedHeight(ctx)
 	if err != nil {
+		k.Logger(sdkCtx).Info("bench Enalbed", k.benchEnabled())
+		if k.benchEnabled() {
+			activatedHeight = 1 // ★ 벤치: 1부터 시작
+		} else {
+			panic(fmt.Errorf("cannot tally a block when the BTC staking protocol hasn't been activated yet, current height: %v, activated height: %v",
+				sdkCtx.HeaderInfo().Height, activatedHeight))
+		}
 		// invoking TallyBlocks when BTC staking protocol is not activated is a programming error
-		panic(fmt.Errorf("cannot tally a block when the BTC staking protocol hasn't been activated yet, current height: %v, activated height: %v",
-			sdkCtx.HeaderInfo().Height, activatedHeight))
+
 	}
 
 	// start finalising blocks since max(activatedHeight, nextHeightToFinalize)
@@ -35,6 +41,10 @@ func (k Keeper) TallyBlocks(ctx context.Context, maxFinalizedBlocks uint64) {
 	currentLastBlockHeight := uint64(sdkCtx.HeaderInfo().Height)
 	if !k.HasBlock(ctx, currentLastBlockHeight) {
 		k.IndexBlock(ctx)
+	}
+
+	if k.benchEnabled() {
+		k.ensureBenchFPSet(ctx, currentLastBlockHeight)
 	}
 	// need to add minus 1, as the tallying loop is inclucive of [start, end]
 	maxHeightToFinalize := min(startHeight+maxFinalizedBlocks-1, currentLastBlockHeight)

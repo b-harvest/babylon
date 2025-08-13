@@ -13,6 +13,12 @@ import (
 	"github.com/babylonlabs-io/babylon/v3/x/finality/types"
 )
 
+type BenchConfig struct {
+	Enabled bool
+	FpCount uint32
+	VpPerFp uint64
+}
+
 type (
 	Keeper struct {
 		cdc                   codec.BinaryCodec
@@ -34,6 +40,7 @@ type (
 		// pubRandCommitIndex key: BIP340PubKey bytes | value: PubRandCommitIndexValue (ordered start heights of commitments)
 		// This index is useful for retrieving PubRandCommits using binary search
 		pubRandCommitIndex collections.Map[[]byte, types.PubRandCommitIndexValue]
+		bench              BenchConfig
 	}
 )
 
@@ -107,14 +114,26 @@ func (k Keeper) GetCurrentEpoch(ctx context.Context) uint64 {
 // IsFinalityActive returns true if the finality is activated and ready
 // to start handling liveness, tally and index blocks.
 func (k Keeper) IsFinalityActive(ctx context.Context) (activated bool) {
-	if uint64(sdk.UnwrapSDKContext(ctx).HeaderInfo().Height) < k.GetParams(ctx).FinalityActivationHeight {
-		return false
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// ★ 벤치면 바로 활성 처리(높이 1부터)
+	if k.benchEnabled() {
+		return sdkCtx.HeaderInfo().Height >= 1
 	}
 
+	if uint64(sdkCtx.HeaderInfo().Height) < k.GetParams(ctx).FinalityActivationHeight {
+		return false
+	}
 	_, err := k.GetBTCStakingActivatedHeight(ctx)
 	return err == nil
 }
 
 func (k Keeper) ModuleAddress() string {
 	return k.finalityModuleAddress
+}
+
+func (k Keeper) benchEnabled() bool { return k.bench.Enabled }
+
+func (k *Keeper) SetBenchConfig(cfg BenchConfig) {
+	k.bench = cfg
 }

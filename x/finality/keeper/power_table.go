@@ -2,7 +2,10 @@ package keeper
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"cosmossdk.io/store/prefix"
 	"github.com/cosmos/cosmos-sdk/runtime"
@@ -71,6 +74,72 @@ func (k Keeper) HasVotingPowerTable(ctx context.Context, height uint64) bool {
 	iter := store.Iterator(nil, nil)
 	defer iter.Close()
 	return iter.Valid()
+}
+
+func (k Keeper) ensureBenchFPSet(ctx context.Context, h uint64) {
+	if !k.benchEnabled() {
+		return
+	}
+
+	// 이미 있으면 스킵
+	if fp := k.GetVotingPowerTable(ctx, h); fp != nil {
+		return
+	}
+
+	n := int(k.bench.FpCount)
+	if n <= 0 {
+		n = 3
+	}
+	vp := k.bench.VpPerFp
+	if vp == 0 {
+		vp = 100
+	}
+
+	fpSet := make(map[string]uint64, n)
+	for i := 0; i < n; i++ {
+		fpSet[fmt.Sprintf("bench-btcpk-%d", i)] = vp
+	}
+	// ★ GetVotingPowerTable이 읽는 것과 같은 스토어에 써야 함
+	k.SetVotingPowerTable(ctx, h, fpSet)
+}
+
+// SetVotingPowerTable writes the (fpPK -> voting power) table at a given height.
+//   - 기존 height의 엔트리를 모두 삭제 후 덮어씁니다.
+//   - 키 문자열이 64-hex(또는 0x+64-hex)면 그대로 해석하고,
+//     그 외(예: "bench-btcpk-0")는 sha256(label)로 32바이트 PK를 결정론적으로 생성합니다.
+func (k Keeper) SetVotingPowerTable(ctx context.Context, height uint64, fpSet map[string]uint64) {
+	store := k.votingPowerBbnBlockHeightStore(ctx, height)
+
+	// 1) 기존 엔트리 삭제
+	iter := store.Iterator(nil, nil)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		store.Delete(iter.Key())
+	}
+
+	// 2) 새 테이블 기록
+	for pkStr, power := range fpSet {
+		pkBytes, err := deriveBTCPubKeyBytes(pkStr)
+		if err != nil {
+			// 프로그래밍 오류로 간주
+			panic(fmt.Errorf("invalid fp key %q: %w", pkStr, err))
+		}
+		store.Set(pkBytes, sdk.Uint64ToBigEndian(power))
+	}
+}
+
+// deriveBTCPubKeyBytes converts a string into 32-byte BTC (BIP340) pubkey bytes.
+// - If pkStr looks like hex(64 chars) or 0x+64 hex, decode it.
+// - Otherwise, derive a deterministic 32-byte value via sha256(pkStr).
+func deriveBTCPubKeyBytes(pkStr string) ([]byte, error) {
+	s := strings.TrimPrefix(pkStr, "0x")
+	if _, err := hex.DecodeString(s); err == nil && len(s) == 64 {
+		bz, _ := hex.DecodeString(s)
+		return bz, nil
+	}
+	// bench label or any non-hex → sha256(label)
+	sum := sha256.Sum256([]byte(pkStr))
+	return sum[:], nil
 }
 
 // GetVotingPowerTable gets the voting power table, i.e., finality provider set at a given height

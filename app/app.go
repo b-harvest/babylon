@@ -118,6 +118,7 @@ import (
 	"github.com/babylonlabs-io/babylon/v3/x/epoching"
 	epochingtypes "github.com/babylonlabs-io/babylon/v3/x/epoching/types"
 	"github.com/babylonlabs-io/babylon/v3/x/finality"
+	finalitykeeper "github.com/babylonlabs-io/babylon/v3/x/finality/keeper"
 	finalitytypes "github.com/babylonlabs-io/babylon/v3/x/finality/types"
 	"github.com/babylonlabs-io/babylon/v3/x/incentive"
 	incentivekeeper "github.com/babylonlabs-io/babylon/v3/x/incentive/keeper"
@@ -279,6 +280,25 @@ func NewBabylonApp(
 		wasmOpts,
 		BlockedAddresses(),
 	)
+
+	// appOpts에서 읽기 (cli 플래그, app.toml, ENV로 주입된 값이 들어올 수 있음)
+	enabled := cast.ToBool(appOpts.Get("finality.bench.enabled"))
+	fpCount := cast.ToUint32(appOpts.Get("finality.bench.fp_count"))
+	vpPerFp := cast.ToUint64(appOpts.Get("finality.bench.vp_per_fp"))
+
+	// 기본값 보정
+	if fpCount == 0 {
+		fpCount = 3
+	}
+	if vpPerFp == 0 {
+		vpPerFp = 100
+	}
+
+	app.FinalityKeeper.SetBenchConfig(finalitykeeper.BenchConfig{
+		Enabled: enabled,
+		FpCount: fpCount,
+		VpPerFp: vpPerFp,
+	})
 
 	// Create IBC Tendermint Light Client Stack
 	clientKeeper := app.IBCKeeper.ClientKeeper

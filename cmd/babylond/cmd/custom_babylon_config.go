@@ -47,6 +47,18 @@ func defaultBabylonMempoolConfig() BabylonMempoolConfig {
 	}
 }
 
+// bench 섹션
+type FinalityBenchConfig struct {
+	Enabled bool   `mapstructure:"enabled"`
+	FpCount uint32 `mapstructure:"fp_count"`
+	VpPerFp uint64 `mapstructure:"vp_per_fp"`
+}
+
+// finality 루트 섹션
+type FinalityConfig struct {
+	Bench FinalityBenchConfig `mapstructure:"bench"`
+}
+
 type BabylonAppConfig struct {
 	serverconfig.Config `mapstructure:",squash"`
 
@@ -57,6 +69,8 @@ type BabylonAppConfig struct {
 	BlsConfig BlsConfig `mapstructure:"bls-config"`
 
 	BabylonMempoolConfig BabylonMempoolConfig `mapstructure:"babylon-mempool"`
+
+	Finality FinalityConfig `mapstructure:"finality"`
 }
 
 func DefaultBabylonAppConfig() *BabylonAppConfig {
@@ -72,6 +86,13 @@ func DefaultBabylonAppConfig() *BabylonAppConfig {
 		BtcConfig:            defaultBabylonBtcConfig(),
 		BlsConfig:            defaultBabylonBlsConfig(),
 		BabylonMempoolConfig: defaultBabylonMempoolConfig(),
+		Finality: FinalityConfig{
+			Bench: FinalityBenchConfig{
+				Enabled: true,
+				FpCount: 3,
+				VpPerFp: 100,
+			},
+		},
 	}
 }
 
@@ -103,5 +124,14 @@ network = "{{ .BtcConfig.Network }}"
 # This is the max allowed gas for any tx.
 # This is only for local mempool purposes, and thus	is only ran on check tx.
 max-gas-wanted-per-tx = "{{ .BabylonMempoolConfig.MaxGasWantedPerTx }}"
+
+
+###############################################################################
+###                         Finality Bench Config                           ###
+###############################################################################
+[finality.bench]
+enabled   = {{ .Finality.Bench.Enabled }}
+fp_count  = {{ .Finality.Bench.FpCount }}
+vp_per_fp = {{ .Finality.Bench.VpPerFp }}
 `
 }
