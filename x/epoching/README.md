@@ -157,9 +157,13 @@ it is needed to register the migration there too.
 **Delaying wrapped messages to the end of epochs.** The Epoching module
 maintains a message queue for each epoch. Upon each wrapped message, the
 Epoching module performs basic sanity checks, then enqueues the message to the
-message queue. When the epoch ends, the Epoching module will forward queued
+message queue. When a message is enqueued, funds are locked in the epoching module until epoch end. 
+Upon epoch completion, the funds are released to the user.
+When the epoch ends, the Epoching module will forward queued
 messages to the Staking module. Consequently, the Staking module receives and
 handles staking-related messages, and performs validator set updates.
+Gas costs for the end-of-epoch execution are pre-charged when the message is enqueued, based on a pre-estimated amount.
+
 
 **Bitcoin-assisted Unbonding.** Babylon implements the Bitcoin-assisted
 unbonding mechanism by invoking the Staking module upon a checkpointed epoch .
@@ -422,11 +426,12 @@ Upon `EndBlocker`, the Epoching module of each Babylon node will [execute the
 following](./abci.go) *if at the last block of the current epoch*:
 
 1. Get all queued messages of this epoch in the epoch message queue storage.
-2. Forward each of the queued messages to the corresponding message handler in
+2. Unescrow (unlock) the funds previously locked for these messages so they are available for staking-message execution.
+3. Forward each of the queued messages to the corresponding message handler in
    the Staking module.
-3. Emit events about the execution results of the messages.
-4. Invoke the Staking module to update the validator set.
-5. Trigger hooks and emit events that the chain has ended the current epoch.
+4. Emit events about the execution results of the messages.
+5. Invoke the Staking module to update the validator set.
+6. Trigger hooks and emit events that the chain has ended the current epoch.
 
 ## Hooks
 
