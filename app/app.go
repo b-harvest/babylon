@@ -166,6 +166,7 @@ var (
 		tokenfactorytypes.ModuleName:                {authtypes.Minter, authtypes.Burner},
 		icatypes.ModuleName:                         nil,
 		incentivetypes.ModAccCommissionCollectorBSN: nil, // Babylon BSN rewards commission collector
+		"epoching_delegate_pool":                    {authtypes.Minter, authtypes.Burner},
 	}
 
 	// software upgrades and forks
