@@ -101,31 +101,19 @@ func validateDelegatePoolModuleAccount(ctx context.Context, ak types.AccountKeep
 }
 
 // validateDelegatePoolEmpty validates that the delegation pool module account has no locked funds
-func validateDelegatePoolEmpty(ctx context.Context, ak types.AccountKeeper, bk interface{}) error {
+func validateDelegatePoolEmpty(ctx context.Context, ak types.AccountKeeper, bk types.BankKeeper) error {
 	// Use hardcoded module name to avoid dependency on upgraded types
 	const delegatePoolModuleName = "epoching_delegate_pool"
 
 	moduleAddr := ak.GetModuleAddress(delegatePoolModuleName)
-	if moduleAddr == nil {
-		return fmt.Errorf("module account %s address not found", delegatePoolModuleName)
-	}
 
-	// Type assertion to access bank keeper methods
-	bankKeeper, ok := bk.(interface {
-		SpendableCoins(context.Context, sdk.AccAddress) sdk.Coins
-	})
-	if !ok {
-		return fmt.Errorf("invalid bank keeper type - cannot access balance methods")
-	}
-
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	balance := bankKeeper.SpendableCoins(ctx, moduleAddr)
-
+	balance := bk.SpendableCoins(ctx, moduleAddr)
 	if !balance.IsZero() {
 		return fmt.Errorf("upgrade cannot proceed with locked funds in delegation pool (balance: %s) - this indicates unprocessed queued messages with locked funds",
 			balance.String())
 	}
 
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	sdkCtx.Logger().Info("delegation pool validation successful",
 		"module", delegatePoolModuleName,
 		"address", moduleAddr.String(),
