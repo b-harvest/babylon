@@ -108,6 +108,12 @@ func (k Keeper) setBTCDelegationRewardsTracker(ctx context.Context, fp, del sdk.
 	return k.btcDelegationRewardsTracker.Set(ctx, collections.Join(fp.Bytes(), del.Bytes()), rwd)
 }
 
+func (k Keeper) deleteBTCDelegationRewardsTracker(ctx context.Context, fp, del sdk.AccAddress) error {
+	k.deleteBTCDelegatorToFP(ctx, del, fp)
+	err := k.btcDelegationRewardsTracker.Remove(ctx, collections.Join(fp.Bytes(), del.Bytes()))
+	return err
+}
+
 // SetFinalityProviderCurrentRewards sets a new structure in the store, it fails and returns an error if the rwd fails to marshal.
 func (k Keeper) SetFinalityProviderCurrentRewards(ctx context.Context, fp sdk.AccAddress, rwd types.FinalityProviderCurrentRewards) error {
 	return k.finalityProviderCurrentRewards.Set(ctx, fp.Bytes(), rwd)

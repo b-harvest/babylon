@@ -46,7 +46,7 @@ func (k Keeper) BtcDelegationActivated(ctx context.Context, fp, del sdk.AccAddre
 // BtcDelegationUnbonded it modifies the total amount of satoshi staked
 // for the delegation (fp, del) and for the finality provider by subtracting.
 // Since it modifies the active amount it triggers the increment of fp period,
-// creationg of new historical reward, withdraw of rewards to gauge
+// creation of new historical reward, withdraw of rewards to gauge
 // and initialization of a new delegation.
 // It errors out if the unbond amount is higher than the total amount staked.
 func (k Keeper) BtcDelegationUnbonded(ctx context.Context, fp, del sdk.AccAddress, sat sdkmath.Int) error {
@@ -121,6 +121,18 @@ func (k Keeper) btcDelegationModifiedWithPreInitDel(
 	if err := k.CalculateBTCDelegationRewardsAndSendToGauge(ctx, fp, del, endedPeriod); err != nil {
 		return err
 	}
+
+	btcDelRwdTracker, err := k.GetBTCDelegationRewardsTracker(ctx, fp, del)
+	if err != nil {
+		return err
+	}
+
+	err = k.decrementReferenceCount(ctx, fp, btcDelRwdTracker.StartPeriodCumulativeReward)
+	if err != nil {
+		return err
+	}
+
+	err = k.deleteBTCDelegationRewardsTracker(ctx, fp, del)
 
 	if err := preInitializeDelegation(ctx, fp, del); err != nil {
 		return err
@@ -246,12 +258,18 @@ func (k Keeper) IncrementFinalityProviderPeriod(ctx context.Context, fp sdk.AccA
 		currentRewardsPerSat = currentRewardsPerSatWithDecimals.QuoInt(fpCurrentRwd.TotalActiveSat)
 	}
 
+	// decrement reference count
+	err = k.decrementReferenceCount(ctx, fp, fpCurrentRwd.Period-1)
+	if err != nil {
+		return 0, err
+	}
+
 	fpHistoricalRwd, err := k.GetFinalityProviderHistoricalRewards(ctx, fp, fpCurrentRwd.Period-1)
 	if err != nil {
 		return 0, err
 	}
 
-	newFpHistoricalRwd := types.NewFinalityProviderHistoricalRewards(fpHistoricalRwd.CumulativeRewardsPerSat.Add(currentRewardsPerSat...))
+	newFpHistoricalRwd := types.NewFinalityProviderHistoricalRewards(fpHistoricalRwd.CumulativeRewardsPerSat.Add(currentRewardsPerSat...), uint32(1))
 	if err := k.setFinalityProviderHistoricalRewards(ctx, fp, fpCurrentRwd.Period, newFpHistoricalRwd); err != nil {
 		return 0, err
 	}
@@ -265,12 +283,43 @@ func (k Keeper) IncrementFinalityProviderPeriod(ctx context.Context, fp sdk.AccA
 	return fpCurrentRwd.Period, nil
 }
 
+func (k Keeper) incrementReferenceCount(ctx context.Context, fp sdk.AccAddress, period uint64) error {
+	historical, err := k.GetFinalityProviderHistoricalRewards(ctx, fp, period)
+	if err != nil {
+		return err
+	}
+
+	historical.ReferenceCount++
+	if historical.ReferenceCount > 2 {
+		panic("reference count should never be greater than 2")
+	}
+
+	return k.setFinalityProviderHistoricalRewards(ctx, fp, period, historical)
+}
+
+func (k Keeper) decrementReferenceCount(ctx context.Context, fp sdk.AccAddress, period uint64) error {
+	historical, err := k.GetFinalityProviderHistoricalRewards(ctx, fp, period)
+	if err != nil {
+		return err
+	}
+
+	if historical.ReferenceCount == 0 {
+		panic("cannot set negative reference count")
+	}
+	historical.ReferenceCount--
+	if historical.ReferenceCount == 0 {
+		// delete historical
+	}
+
+	return k.setFinalityProviderHistoricalRewards(ctx, fp, period, historical)
+}
+
 // initializeFinalityProvider initializes a new finality provider current rewards at period 1, empty rewards and zero sats
 // and also creates a new historical rewards at period 0 and zero rewards as well.
 // It does not verifies if it exists prior to overwrite, who calls it needs to verify.
 func (k Keeper) initializeFinalityProvider(ctx context.Context, fp sdk.AccAddress) (types.FinalityProviderCurrentRewards, error) {
 	// historical rewards starts at the period 0
-	err := k.setFinalityProviderHistoricalRewards(ctx, fp, 0, types.NewFinalityProviderHistoricalRewards(sdk.NewCoins()))
+	err := k.setFinalityProviderHistoricalRewards(ctx, fp, 0, types.NewFinalityProviderHistoricalRewards(sdk.NewCoins(), uint32(1)))
 	if err != nil {
 		return types.FinalityProviderCurrentRewards{}, err
 	}
@@ -287,16 +336,21 @@ func (k Keeper) initializeFinalityProvider(ctx context.Context, fp sdk.AccAddres
 // modification to the amount of satoshi staked from this btc delegator to
 // this finality provider (activivation or unbonding) of BTC delegations, it
 // should withdraw all rewards (send to gauge) and initialize a new BTCDelegationRewardsTracker.
-// TODO: add reference count to keep track of possible prunning state of val rewards
 func (k Keeper) initializeBTCDelegation(ctx context.Context, fp, del sdk.AccAddress) error {
 	// period has already been incremented prior to call this function
 	// it is needed to store the period ended by this delegation action
 	// as a starting point of the delegation rewards calculation
-	valCurrentRewards, err := k.GetFinalityProviderCurrentRewards(ctx, fp)
+	fpCurrentRwd, err := k.GetFinalityProviderCurrentRewards(ctx, fp)
 	if err != nil {
 		return err
 	}
-	previousPeriod := valCurrentRewards.Period - 1
+	previousPeriod := fpCurrentRwd.Period - 1
+
+	// increment reference count for the period we're going to track
+	err = k.incrementReferenceCount(ctx, fp, previousPeriod)
+	if err != nil {
+		return err
+	}
 
 	btcDelRwdTracker, err := k.GetBTCDelegationRewardsTracker(ctx, fp, del)
 	if err != nil {
