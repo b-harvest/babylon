@@ -60,9 +60,15 @@ func (k Keeper) BtcDelegationUnbonded(ctx context.Context, fp, del sdk.AccAddres
 // and sending to the gauge. After the rewards are removed, it should
 // delete every rewards tracker value in the store related to this slashed
 // finality provider.
+// TODO: utilze this function after modifying its logic
 func (k Keeper) FpSlashed(ctx context.Context, fp sdk.AccAddress) error {
 	// finalize the period to get a new history with the current rewards available
 	endedPeriod, err := k.IncrementFinalityProviderPeriod(ctx, fp)
+	if err != nil {
+		return err
+	}
+
+	err = k.incrementReferenceCount(ctx, fp, endedPeriod)
 	if err != nil {
 		return err
 	}
@@ -76,6 +82,7 @@ func (k Keeper) FpSlashed(ctx context.Context, fp sdk.AccAddress) error {
 		return err
 	}
 
+	// TODO: do not delete all reward tracker to track historical reference
 	// delete all reward tracker that correlates with the slashed finality provider.
 	k.deleteKeysFromBTCDelegationRewardsTracker(ctx, fp, keysBtcDelRwdTracker)
 	k.deleteAllFromFinalityProviderRwd(ctx, fp)
