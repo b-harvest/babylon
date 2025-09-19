@@ -68,10 +68,10 @@ func (k Keeper) FpSlashed(ctx context.Context, fp sdk.AccAddress) error {
 		return err
 	}
 
-	err = k.incrementReferenceCount(ctx, fp, endedPeriod)
-	if err != nil {
-		return err
-	}
+	//err = k.incrementReferenceCount(ctx, fp, endedPeriod)
+	//if err != nil {
+	//	return err
+	//}
 
 	// remove all the rewards available from the just ended period
 	keysBtcDelRwdTracker := make([][]byte, 0)
@@ -105,7 +105,22 @@ func (k Keeper) btcDelegationModified(
 	ctx context.Context,
 	fp, del sdk.AccAddress,
 ) error {
-	return k.btcDelegationModifiedWithPreInitDel(ctx, fp, del, func(ctx context.Context, fp, del sdk.AccAddress) error { return nil })
+	err := k.btcDelegationModifiedWithPreInitDel(ctx, fp, del, func(ctx context.Context, fp, del sdk.AccAddress) error { return nil })
+	if err != nil {
+		return err
+	}
+
+	//btcDelRwdTracker, err := k.GetBTCDelegationRewardsTracker(ctx, fp, del)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//err = k.decrementReferenceCount(ctx, fp, btcDelRwdTracker.StartPeriodCumulativeReward-1)
+	//if err != nil {
+	//	return err
+	//}
+
+	return nil
 }
 
 // btcDelegationModifiedWithPreInitDel does the procedure when a BTC delegation has
@@ -125,23 +140,11 @@ func (k Keeper) btcDelegationModifiedWithPreInitDel(
 		return err
 	}
 
-	if err := k.CalculateBTCDelegationRewardsAndSendToGauge(ctx, fp, del, endedPeriod); err != nil {
+	if err = k.CalculateBTCDelegationRewardsAndSendToGauge(ctx, fp, del, endedPeriod); err != nil {
 		return err
 	}
 
-	btcDelRwdTracker, err := k.GetBTCDelegationRewardsTracker(ctx, fp, del)
-	if err != nil {
-		return err
-	}
-
-	err = k.decrementReferenceCount(ctx, fp, btcDelRwdTracker.StartPeriodCumulativeReward)
-	if err != nil {
-		return err
-	}
-
-	err = k.deleteBTCDelegationRewardsTracker(ctx, fp, del)
-
-	if err := preInitializeDelegation(ctx, fp, del); err != nil {
+	if err = preInitializeDelegation(ctx, fp, del); err != nil {
 		return err
 	}
 
@@ -265,13 +268,13 @@ func (k Keeper) IncrementFinalityProviderPeriod(ctx context.Context, fp sdk.AccA
 		currentRewardsPerSat = currentRewardsPerSatWithDecimals.QuoInt(fpCurrentRwd.TotalActiveSat)
 	}
 
-	// decrement reference count
-	err = k.decrementReferenceCount(ctx, fp, fpCurrentRwd.Period-1)
+	fpHistoricalRwd, err := k.GetFinalityProviderHistoricalRewards(ctx, fp, fpCurrentRwd.Period-1)
 	if err != nil {
 		return 0, err
 	}
 
-	fpHistoricalRwd, err := k.GetFinalityProviderHistoricalRewards(ctx, fp, fpCurrentRwd.Period-1)
+	// decrement reference count
+	err = k.decrementReferenceCount(ctx, fp, fpCurrentRwd.Period-1)
 	if err != nil {
 		return 0, err
 	}
@@ -315,7 +318,7 @@ func (k Keeper) decrementReferenceCount(ctx context.Context, fp sdk.AccAddress, 
 	}
 	historical.ReferenceCount--
 	if historical.ReferenceCount == 0 {
-		// delete historical
+		return k.deleteFinalityProviderHistoricalRewards(ctx, fp, period)
 	}
 
 	return k.setFinalityProviderHistoricalRewards(ctx, fp, period, historical)

@@ -358,7 +358,7 @@ func FuzzCheckCalculateDelegationRewardsBetween(f *testing.F) {
 		endingPeriod := btcRwd.StartPeriodCumulativeReward + 1
 
 		// creates a bad historical ending period that has less rewards than the starting one
-		err = k.setFinalityProviderHistoricalRewards(ctx, fp, endingPeriod, types.NewFinalityProviderHistoricalRewards(historicalStartPeriod.CumulativeRewardsPerSat.QuoInt(sdkmath.NewInt(2))))
+		err = k.setFinalityProviderHistoricalRewards(ctx, fp, endingPeriod, types.NewFinalityProviderHistoricalRewards(historicalStartPeriod.CumulativeRewardsPerSat.QuoInt(sdkmath.NewInt(2)), uint32(1)))
 		require.NoError(t, err)
 		require.Panics(t, func() {
 			_, _ = k.calculateDelegationRewardsBetween(ctx, fp, btcRwd, endingPeriod)
@@ -442,7 +442,7 @@ func FuzzCheckIncrementFinalityProviderPeriod(f *testing.F) {
 		require.NoError(t, err)
 
 		amtRwdInHistorical := fpCurrentRwd.CurrentRewards.QuoInt(sdkmath.NewInt(2))
-		err = k.setFinalityProviderHistoricalRewards(ctx, fp, fpCurrentRwd.Period-1, types.NewFinalityProviderHistoricalRewards(amtRwdInHistorical))
+		err = k.setFinalityProviderHistoricalRewards(ctx, fp, fpCurrentRwd.Period-1, types.NewFinalityProviderHistoricalRewards(amtRwdInHistorical, uint32(1)))
 		require.NoError(t, err)
 
 		endedPeriod, err = k.IncrementFinalityProviderPeriod(ctx, fp)
@@ -581,6 +581,7 @@ func FuzzCheckInitializeBTCDelegation(f *testing.F) {
 		err = k.SetFinalityProviderCurrentRewards(ctx, fp, fpCurrentRwd)
 		require.NoError(t, err)
 
+		k.setFinalityProviderHistoricalRewards(ctx, fp, fpCurrentRwd.Period-1, types.NewFinalityProviderHistoricalRewards(sdk.NewCoins(), uint32(1)))
 		err = k.initializeBTCDelegation(ctx, fp, del)
 		require.EqualError(t, err, types.ErrBTCDelegationRewardsTrackerNotFound.Error())
 
@@ -588,6 +589,7 @@ func FuzzCheckInitializeBTCDelegation(f *testing.F) {
 		err = k.setBTCDelegationRewardsTracker(ctx, fp, del, delBtcRwdTrackerBeforeInitialize)
 		require.NoError(t, err)
 
+		k.setFinalityProviderHistoricalRewards(ctx, fp, fpCurrentRwd.Period-1, types.NewFinalityProviderHistoricalRewards(sdk.NewCoins(), uint32(1)))
 		err = k.initializeBTCDelegation(ctx, fp, del)
 		require.NoError(t, err)
 

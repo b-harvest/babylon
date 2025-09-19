@@ -137,7 +137,7 @@ func FuzzDelegationRewardsQuery(f *testing.F) {
 
 		// set start historical rewards corresponding to btcRwd.StartPeriodCumulativeReward
 		amtRwdInHistStart := fpCurrentRwd.CurrentRewards.QuoInt(math.NewInt(2))
-		startHist := types.NewFinalityProviderHistoricalRewards(amtRwdInHistStart)
+		startHist := types.NewFinalityProviderHistoricalRewards(amtRwdInHistStart, uint32(1))
 		// encode the starting historical rewards
 		startHistRwdBz, err := codec.CollValue[types.FinalityProviderHistoricalRewards](encConfig.Codec).Encode(startHist)
 		require.NoError(t, err)
@@ -151,7 +151,7 @@ func FuzzDelegationRewardsQuery(f *testing.F) {
 		// set end period historical rewards
 		// end period for calculation is fpCurrentRwd.Period-1
 		amtRwdInHistEnd := amtRwdInHistStart.Add(fpCurrentRwd.CurrentRewards.QuoInt(fpCurrentRwd.TotalActiveSat)...)
-		endHist := types.NewFinalityProviderHistoricalRewards(amtRwdInHistEnd)
+		endHist := types.NewFinalityProviderHistoricalRewards(amtRwdInHistEnd, uint32(1))
 		// encode the fp historical rewards
 		endHistRwdBz, err := codec.CollValue[types.FinalityProviderHistoricalRewards](encConfig.Codec).Encode(endHist)
 		require.NoError(t, err)
