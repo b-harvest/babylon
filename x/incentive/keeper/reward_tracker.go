@@ -68,11 +68,6 @@ func (k Keeper) FpSlashed(ctx context.Context, fp sdk.AccAddress) error {
 		return err
 	}
 
-	//err = k.incrementReferenceCount(ctx, fp, endedPeriod)
-	//if err != nil {
-	//	return err
-	//}
-
 	// remove all the rewards available from the just ended period
 	keysBtcDelRwdTracker := make([][]byte, 0)
 	if err := k.IterateBTCDelegationRewardsTracker(ctx, fp, func(fp, del sdk.AccAddress) error {
@@ -105,22 +100,25 @@ func (k Keeper) btcDelegationModified(
 	ctx context.Context,
 	fp, del sdk.AccAddress,
 ) error {
-	err := k.btcDelegationModifiedWithPreInitDel(ctx, fp, del, func(ctx context.Context, fp, del sdk.AccAddress) error { return nil })
+	endedPeriod, err := k.IncrementFinalityProviderPeriod(ctx, fp)
 	if err != nil {
 		return err
 	}
 
-	//btcDelRwdTracker, err := k.GetBTCDelegationRewardsTracker(ctx, fp, del)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//err = k.decrementReferenceCount(ctx, fp, btcDelRwdTracker.StartPeriodCumulativeReward-1)
-	//if err != nil {
-	//	return err
-	//}
+	if err = k.CalculateBTCDelegationRewardsAndSendToGauge(ctx, fp, del, endedPeriod); err != nil {
+		return err
+	}
 
-	return nil
+	btcDelRwdTracker, err := k.GetBTCDelegationRewardsTracker(ctx, fp, del)
+	if err != nil {
+		return err
+	}
+
+	if err = k.decrementReferenceCount(ctx, fp, btcDelRwdTracker.StartPeriodCumulativeReward); err != nil {
+		return err
+	}
+
+	return k.initializeBTCDelegation(ctx, fp, del)
 }
 
 // btcDelegationModifiedWithPreInitDel does the procedure when a BTC delegation has

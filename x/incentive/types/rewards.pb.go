@@ -96,7 +96,7 @@ func (m *FinalityProviderHistoricalRewards) GetReferenceCount() uint32 {
 // Note: This rewards are for the BTC delegators that delegated to this FP
 // the FP itself is not the owner or can withdraw this rewards.
 // If a slash event happens with this finality provider, all the delegations
-// need to withdraw to the RewardGauge and the related scrutures should be
+// need to withdraw to the RewardGauge and the related structures should be
 // deleted. Key: Prefix + Finality provider bech32 address.
 type FinalityProviderCurrentRewards struct {
 	// CurrentRewards is the current rewards that the finality provider have and
