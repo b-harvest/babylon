@@ -359,6 +359,10 @@ func (k Keeper) initializeBTCDelegation(ctx context.Context, fp, del sdk.AccAddr
 	}
 
 	btcDelRwdTracker, err := k.GetBTCDelegationRewardsTracker(ctx, fp, del)
+	if err != nil {
+		return err
+	}
+
 	rwd := types.NewBTCDelegationRewardsTracker(previousPeriod, btcDelRwdTracker.TotalActiveSat)
 	return k.setBTCDelegationRewardsTracker(ctx, fp, del, rwd)
 }
