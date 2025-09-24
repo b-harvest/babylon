@@ -90,9 +90,9 @@ func (k Keeper) AddFinalityProvider(goCtx context.Context, msg *types.MsgCreateF
 	k.SetFinalityProvider(ctx, &fp)
 	k.bsnIndexFinalityProvider(ctx, &fp)
 
-	if _, err := k.ictvKeeper.InitializeFinalityProvider(ctx, fpAddr); err != nil {
-		return err
-	}
+	//if _, err := k.ictvKeeper.InitializeFinalityProvider(ctx, fpAddr); err != nil {
+	//	return err
+	//}
 
 	// Create BTC Staking Consumer Event for the new finality provider
 	if isConsumer {

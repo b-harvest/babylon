@@ -358,11 +358,16 @@ func (k Keeper) initializeBTCDelegation(ctx context.Context, fp, del sdk.AccAddr
 		return err
 	}
 
+	var rwd types.BTCDelegationRewardsTracker
 	btcDelRwdTracker, err := k.GetBTCDelegationRewardsTracker(ctx, fp, del)
 	if err != nil {
-		return err
+		if !errors.Is(err, types.ErrBTCDelegationRewardsTrackerNotFound) {
+			return err
+		}
+		rwd = types.NewBTCDelegationRewardsTracker(previousPeriod, sdkmath.ZeroInt())
+	} else {
+		rwd = types.NewBTCDelegationRewardsTracker(previousPeriod, btcDelRwdTracker.TotalActiveSat)
 	}
 
-	rwd := types.NewBTCDelegationRewardsTracker(previousPeriod, btcDelRwdTracker.TotalActiveSat)
 	return k.setBTCDelegationRewardsTracker(ctx, fp, del, rwd)
 }

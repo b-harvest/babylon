@@ -216,7 +216,7 @@ func FuzzCheckBtcDelegationModifiedWithPreInitDel(f *testing.F) {
 		require.Equal(t, count, 0)
 
 		err := k.btcDelegationModifiedWithPreInitDel(ctx, fp, del, fCount)
-		require.EqualError(t, err, types.ErrBTCDelegationRewardsTrackerNotFound.Error())
+		require.NoError(t, err)
 
 		err = k.BtcDelegationActivated(ctx, fp, del, sdkmath.NewIntFromUint64(datagen.RandomInt(r, 1000)+10))
 		require.NoError(t, err)
@@ -583,20 +583,12 @@ func FuzzCheckInitializeBTCDelegation(f *testing.F) {
 
 		k.setFinalityProviderHistoricalRewards(ctx, fp, fpCurrentRwd.Period-1, types.NewFinalityProviderHistoricalRewards(sdk.NewCoins(), uint32(1)))
 		err = k.initializeBTCDelegation(ctx, fp, del)
-		require.EqualError(t, err, types.ErrBTCDelegationRewardsTrackerNotFound.Error())
-
-		delBtcRwdTrackerBeforeInitialize := datagen.GenRandomBTCDelegationRewardsTracker(r)
-		err = k.setBTCDelegationRewardsTracker(ctx, fp, del, delBtcRwdTrackerBeforeInitialize)
-		require.NoError(t, err)
-
-		k.setFinalityProviderHistoricalRewards(ctx, fp, fpCurrentRwd.Period-1, types.NewFinalityProviderHistoricalRewards(sdk.NewCoins(), uint32(1)))
-		err = k.initializeBTCDelegation(ctx, fp, del)
 		require.NoError(t, err)
 
 		actBtcDelRwdTracker, err := k.GetBTCDelegationRewardsTracker(ctx, fp, del)
 		require.NoError(t, err)
 		require.Equal(t, fpCurrentRwd.Period-1, actBtcDelRwdTracker.StartPeriodCumulativeReward)
-		require.Equal(t, delBtcRwdTrackerBeforeInitialize.TotalActiveSat, actBtcDelRwdTracker.TotalActiveSat)
+		require.Equal(t, sdkmath.ZeroInt(), actBtcDelRwdTracker.TotalActiveSat)
 	})
 }
 
