@@ -12,7 +12,8 @@ import (
 	types0 "github.com/babylonlabs-io/babylon/v4/x/btccheckpoint/types"
 	types1 "github.com/babylonlabs-io/babylon/v4/x/btclightclient/types"
 	types2 "github.com/babylonlabs-io/babylon/v4/x/btcstkconsumer/types"
-	types3 "github.com/cosmos/cosmos-sdk/types"
+	types3 "github.com/babylonlabs-io/babylon/v4/x/incentive/types"
+	types4 "github.com/cosmos/cosmos-sdk/types"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -194,7 +195,7 @@ func (mr *MockBTCStkConsumerKeeperMockRecorder) ConsumerHasIBCChannelOpen(ctx, c
 }
 
 // GetConsumerID mocks base method.
-func (m *MockBTCStkConsumerKeeper) GetConsumerID(ctx types3.Context, portID, channelID string) (string, error) {
+func (m *MockBTCStkConsumerKeeper) GetConsumerID(ctx types4.Context, portID, channelID string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetConsumerID", ctx, portID, channelID)
 	ret0, _ := ret[0].(string)
@@ -276,7 +277,7 @@ func (m *MockIncentiveKeeper) EXPECT() *MockIncentiveKeeperMockRecorder {
 }
 
 // AccumulateRewardGaugeForFP mocks base method.
-func (m *MockIncentiveKeeper) AccumulateRewardGaugeForFP(ctx context.Context, addr types3.AccAddress, reward types3.Coins) {
+func (m *MockIncentiveKeeper) AccumulateRewardGaugeForFP(ctx context.Context, addr types4.AccAddress, reward types4.Coins) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "AccumulateRewardGaugeForFP", ctx, addr, reward)
 }
@@ -288,7 +289,7 @@ func (mr *MockIncentiveKeeperMockRecorder) AccumulateRewardGaugeForFP(ctx, addr,
 }
 
 // AddFinalityProviderRewardsForBtcDelegations mocks base method.
-func (m *MockIncentiveKeeper) AddFinalityProviderRewardsForBtcDelegations(ctx context.Context, fp types3.AccAddress, rwd types3.Coins) error {
+func (m *MockIncentiveKeeper) AddFinalityProviderRewardsForBtcDelegations(ctx context.Context, fp types4.AccAddress, rwd types4.Coins) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddFinalityProviderRewardsForBtcDelegations", ctx, fp, rwd)
 	ret0, _ := ret[0].(error)
@@ -302,7 +303,7 @@ func (mr *MockIncentiveKeeperMockRecorder) AddFinalityProviderRewardsForBtcDeleg
 }
 
 // IndexRefundableMsg mocks base method.
-func (m *MockIncentiveKeeper) IndexRefundableMsg(ctx context.Context, msg types3.Msg) {
+func (m *MockIncentiveKeeper) IndexRefundableMsg(ctx context.Context, msg types4.Msg) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "IndexRefundableMsg", ctx, msg)
 }
@@ -311,6 +312,21 @@ func (m *MockIncentiveKeeper) IndexRefundableMsg(ctx context.Context, msg types3
 func (mr *MockIncentiveKeeperMockRecorder) IndexRefundableMsg(ctx, msg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IndexRefundableMsg", reflect.TypeOf((*MockIncentiveKeeper)(nil).IndexRefundableMsg), ctx, msg)
+}
+
+// InitializeFinalityProvider mocks base method.
+func (m *MockIncentiveKeeper) InitializeFinalityProvider(ctx context.Context, fp types4.AccAddress) (types3.FinalityProviderCurrentRewards, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InitializeFinalityProvider", ctx, fp)
+	ret0, _ := ret[0].(types3.FinalityProviderCurrentRewards)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// InitializeFinalityProvider indicates an expected call of InitializeFinalityProvider.
+func (mr *MockIncentiveKeeperMockRecorder) InitializeFinalityProvider(ctx, fp interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InitializeFinalityProvider", reflect.TypeOf((*MockIncentiveKeeper)(nil).InitializeFinalityProvider), ctx, fp)
 }
 
 // MockBankKeeper is a mock of BankKeeper interface.
@@ -337,7 +353,7 @@ func (m *MockBankKeeper) EXPECT() *MockBankKeeperMockRecorder {
 }
 
 // SendCoinsFromAccountToModule mocks base method.
-func (m *MockBankKeeper) SendCoinsFromAccountToModule(ctx context.Context, senderAddr types3.AccAddress, recipientModule string, amt types3.Coins) error {
+func (m *MockBankKeeper) SendCoinsFromAccountToModule(ctx context.Context, senderAddr types4.AccAddress, recipientModule string, amt types4.Coins) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendCoinsFromAccountToModule", ctx, senderAddr, recipientModule, amt)
 	ret0, _ := ret[0].(error)
@@ -351,7 +367,7 @@ func (mr *MockBankKeeperMockRecorder) SendCoinsFromAccountToModule(ctx, senderAd
 }
 
 // SendCoinsFromModuleToModule mocks base method.
-func (m *MockBankKeeper) SendCoinsFromModuleToModule(ctx context.Context, senderModule, recipientModule string, amt types3.Coins) error {
+func (m *MockBankKeeper) SendCoinsFromModuleToModule(ctx context.Context, senderModule, recipientModule string, amt types4.Coins) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendCoinsFromModuleToModule", ctx, senderModule, recipientModule, amt)
 	ret0, _ := ret[0].(error)
@@ -365,10 +381,10 @@ func (mr *MockBankKeeperMockRecorder) SendCoinsFromModuleToModule(ctx, senderMod
 }
 
 // SpendableCoins mocks base method.
-func (m *MockBankKeeper) SpendableCoins(ctx context.Context, addr types3.AccAddress) types3.Coins {
+func (m *MockBankKeeper) SpendableCoins(ctx context.Context, addr types4.AccAddress) types4.Coins {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SpendableCoins", ctx, addr)
-	ret0, _ := ret[0].(types3.Coins)
+	ret0, _ := ret[0].(types4.Coins)
 	return ret0
 }
 

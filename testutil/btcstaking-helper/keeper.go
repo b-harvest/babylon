@@ -36,6 +36,7 @@ import (
 	epochingtypes "github.com/babylonlabs-io/babylon/v4/x/epoching/types"
 	fkeeper "github.com/babylonlabs-io/babylon/v4/x/finality/keeper"
 	ftypes "github.com/babylonlabs-io/babylon/v4/x/finality/types"
+	itypes "github.com/babylonlabs-io/babylon/v4/x/incentive/types"
 )
 
 var (
@@ -71,6 +72,10 @@ func (i IctvKeeperK) AccumulateRewardGaugeForFP(ctx context.Context, addr sdk.Ac
 
 func (i IctvKeeperK) AddFinalityProviderRewardsForBtcDelegations(ctx context.Context, fp sdk.AccAddress, rwd sdk.Coins) error {
 	return i.MockBtcStk.AddFinalityProviderRewardsForBtcDelegations(ctx, fp, rwd)
+}
+
+func (i IctvKeeperK) InitializeFinalityProvider(ctx context.Context, fp sdk.AccAddress) (itypes.FinalityProviderCurrentRewards, error) {
+	return i.MockBtcStk.InitializeFinalityProvider(ctx, fp)
 }
 
 type Helper struct {
@@ -115,6 +120,7 @@ func NewHelper(
 
 	ictvK.MockBtcStk.EXPECT().AccumulateRewardGaugeForFP(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	ictvK.MockBtcStk.EXPECT().AddFinalityProviderRewardsForBtcDelegations(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	ictvK.MockBtcStk.EXPECT().InitializeFinalityProvider(gomock.Any(), gomock.Any()).AnyTimes()
 
 	db := dbm.NewMemDB()
 	stateStore := store.NewCommitMultiStore(db, log.NewTestLogger(t), storemetrics.NewNoOpMetrics())
@@ -144,6 +150,8 @@ func NewHelperNoMocksCalls(
 	ictvK := NewMockIctvKeeperK(ctrl)
 	db := dbm.NewMemDB()
 	stateStore := store.NewCommitMultiStore(db, log.NewTestLogger(t), storemetrics.NewNoOpMetrics())
+
+	ictvK.MockBtcStk.EXPECT().InitializeFinalityProvider(gomock.Any(), gomock.Any()).AnyTimes()
 
 	ckptKeeper := ftypes.NewMockCheckpointingKeeper(ctrl)
 	chKeeper := mocks.NewMockZoneConciergeChannelKeeper(ctrl)
@@ -186,6 +194,8 @@ func NewHelperWithBankMock(
 
 	db := dbm.NewMemDB()
 	stateStore := store.NewCommitMultiStore(db, log.NewTestLogger(t), storemetrics.NewNoOpMetrics())
+
+	ictvK.MockBtcStk.EXPECT().InitializeFinalityProvider(gomock.Any(), gomock.Any()).AnyTimes()
 
 	ckptKeeper := ftypes.NewMockCheckpointingKeeper(ctrl)
 

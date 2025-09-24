@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"github.com/babylonlabs-io/babylon/v4/x/incentive/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -37,6 +38,7 @@ type IncentiveKeeper interface {
 	IndexRefundableMsg(ctx context.Context, msg sdk.Msg)
 	AddFinalityProviderRewardsForBtcDelegations(ctx context.Context, fp sdk.AccAddress, rwd sdk.Coins) error
 	AccumulateRewardGaugeForFP(ctx context.Context, addr sdk.AccAddress, reward sdk.Coins)
+	InitializeFinalityProvider(ctx context.Context, fp sdk.AccAddress) (types.FinalityProviderCurrentRewards, error)
 }
 
 type BankKeeper interface {

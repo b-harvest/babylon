@@ -216,7 +216,7 @@ func FuzzCheckBtcDelegationModifiedWithPreInitDel(f *testing.F) {
 		require.Equal(t, count, 0)
 
 		err := k.btcDelegationModifiedWithPreInitDel(ctx, fp, del, fCount)
-		require.EqualError(t, err, types.ErrBTCDelegationRewardsTrackerNotFound.Error())
+		require.NoError(t, err)
 
 		err = k.BtcDelegationActivated(ctx, fp, del, sdkmath.NewIntFromUint64(datagen.RandomInt(r, 1000)+10))
 		require.NoError(t, err)
@@ -358,7 +358,7 @@ func FuzzCheckCalculateDelegationRewardsBetween(f *testing.F) {
 		endingPeriod := btcRwd.StartPeriodCumulativeReward + 1
 
 		// creates a bad historical ending period that has less rewards than the starting one
-		err = k.setFinalityProviderHistoricalRewards(ctx, fp, endingPeriod, types.NewFinalityProviderHistoricalRewards(historicalStartPeriod.CumulativeRewardsPerSat.QuoInt(sdkmath.NewInt(2))))
+		err = k.setFinalityProviderHistoricalRewards(ctx, fp, endingPeriod, types.NewFinalityProviderHistoricalRewards(historicalStartPeriod.CumulativeRewardsPerSat.QuoInt(sdkmath.NewInt(2)), uint32(1)))
 		require.NoError(t, err)
 		require.Panics(t, func() {
 			_, _ = k.calculateDelegationRewardsBetween(ctx, fp, btcRwd, endingPeriod)
@@ -397,7 +397,7 @@ func FuzzCheckAddFinalityProviderRewardsForBtcDelegations(f *testing.F) {
 		err := k.AddFinalityProviderRewardsForBtcDelegations(ctx, fp, coinsAdded)
 		require.EqualError(t, err, types.ErrFPCurrentRewardsNotFound.Error())
 
-		_, err = k.initializeFinalityProvider(ctx, fp)
+		_, err = k.InitializeFinalityProvider(ctx, fp)
 		require.NoError(t, err)
 		// adding rewards without any vp
 		err = k.AddFinalityProviderRewardsForBtcDelegations(ctx, fp, coinsAdded)
@@ -442,7 +442,7 @@ func FuzzCheckIncrementFinalityProviderPeriod(f *testing.F) {
 		require.NoError(t, err)
 
 		amtRwdInHistorical := fpCurrentRwd.CurrentRewards.QuoInt(sdkmath.NewInt(2))
-		err = k.setFinalityProviderHistoricalRewards(ctx, fp, fpCurrentRwd.Period-1, types.NewFinalityProviderHistoricalRewards(amtRwdInHistorical))
+		err = k.setFinalityProviderHistoricalRewards(ctx, fp, fpCurrentRwd.Period-1, types.NewFinalityProviderHistoricalRewards(amtRwdInHistorical, uint32(1)))
 		require.NoError(t, err)
 
 		endedPeriod, err = k.IncrementFinalityProviderPeriod(ctx, fp)
@@ -581,20 +581,14 @@ func FuzzCheckInitializeBTCDelegation(f *testing.F) {
 		err = k.SetFinalityProviderCurrentRewards(ctx, fp, fpCurrentRwd)
 		require.NoError(t, err)
 
-		err = k.initializeBTCDelegation(ctx, fp, del)
-		require.EqualError(t, err, types.ErrBTCDelegationRewardsTrackerNotFound.Error())
-
-		delBtcRwdTrackerBeforeInitialize := datagen.GenRandomBTCDelegationRewardsTracker(r)
-		err = k.setBTCDelegationRewardsTracker(ctx, fp, del, delBtcRwdTrackerBeforeInitialize)
-		require.NoError(t, err)
-
+		k.setFinalityProviderHistoricalRewards(ctx, fp, fpCurrentRwd.Period-1, types.NewFinalityProviderHistoricalRewards(sdk.NewCoins(), uint32(1)))
 		err = k.initializeBTCDelegation(ctx, fp, del)
 		require.NoError(t, err)
 
 		actBtcDelRwdTracker, err := k.GetBTCDelegationRewardsTracker(ctx, fp, del)
 		require.NoError(t, err)
 		require.Equal(t, fpCurrentRwd.Period-1, actBtcDelRwdTracker.StartPeriodCumulativeReward)
-		require.Equal(t, delBtcRwdTrackerBeforeInitialize.TotalActiveSat, actBtcDelRwdTracker.TotalActiveSat)
+		require.Equal(t, sdkmath.ZeroInt(), actBtcDelRwdTracker.TotalActiveSat)
 	})
 }
 
@@ -606,7 +600,7 @@ func FuzzCheckInitializeFinalityProvider(f *testing.F) {
 		k, ctx := NewKeeperWithCtx(t)
 		fp := datagen.GenRandomAddress()
 
-		currentRwdFp, err := k.initializeFinalityProvider(ctx, fp)
+		currentRwdFp, err := k.InitializeFinalityProvider(ctx, fp)
 		require.NoError(t, err)
 		require.Equal(t, currentRwdFp.CurrentRewards.String(), sdk.NewCoins().String())
 		require.Equal(t, currentRwdFp.TotalActiveSat.String(), sdkmath.ZeroInt().String())
@@ -617,7 +611,7 @@ func FuzzCheckInitializeFinalityProvider(f *testing.F) {
 		require.Equal(t, histRwdFp.CumulativeRewardsPerSat.String(), sdk.NewCoins().String())
 
 		// if initializes it again, the values should be the same
-		currentRwdFp, err = k.initializeFinalityProvider(ctx, fp)
+		currentRwdFp, err = k.InitializeFinalityProvider(ctx, fp)
 		require.NoError(t, err)
 		require.Equal(t, currentRwdFp.CurrentRewards.String(), sdk.NewCoins().String())
 		require.Equal(t, currentRwdFp.TotalActiveSat.String(), sdkmath.ZeroInt().String())
