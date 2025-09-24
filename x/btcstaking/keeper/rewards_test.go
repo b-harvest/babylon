@@ -45,6 +45,9 @@ func FuzzDistributeFpCommissionAndBtcDelRewards(f *testing.F) {
 		heightAfterMultiStakingAllowListExpiration := int64(10)
 		h := testutil.NewHelperWithStoreAndIncentive(t, db, stateStore, btclcKeeper, btccKeeper, btccKForFinality, ictvK, chK, nil).WithBlockHeight(heightAfterMultiStakingAllowListExpiration)
 
+		// expect hook to be triggered
+		ictvK.MockBtcStk.EXPECT().InitializeFinalityProvider(gomock.Any(), gomock.Any()).AnyTimes()
+
 		h.GenAndApplyCustomParams(r, 100, 200, 2)
 
 		randConsumer := h.RegisterAndVerifyConsumer(t, r)

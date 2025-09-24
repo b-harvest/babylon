@@ -161,7 +161,7 @@ func TestConsumerBsnRewardDistribution(t *testing.T) {
 
 	txResults := d.GenerateNewBlockAssertExecutionFailure()
 	require.Len(t, txResults, 1)
-	require.Contains(t, txResults[0].Log, "finality provider current rewards not found")
+	require.Contains(t, txResults[0].Log, "doesn't have active voting power")
 
 	// unbond one btc delegation until fp has zero vp and send bsn rewards to it.
 	err = d.App.IncentiveKeeper.BtcDelegationUnbonded(d.Ctx(), conFpAddr0, staker.Address(), math.NewInt(amtSatFp0))

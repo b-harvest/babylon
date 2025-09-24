@@ -233,8 +233,11 @@ func FuzzFinalityProvider(f *testing.F) {
 	datagen.AddRandomSeedsToFuzzer(f, 10)
 	f.Fuzz(func(t *testing.T, seed int64) {
 		r := rand.New(rand.NewSource(seed))
+		ctrl := gomock.NewController(t)
 		// Setup keeper and context
-		keeper, ctx := testkeeper.BTCStakingKeeper(t, nil, nil, nil, nil)
+		iKeeper := types.NewMockIncentiveKeeper(ctrl)
+		iKeeper.EXPECT().InitializeFinalityProvider(gomock.Any(), gomock.Any()).AnyTimes()
+		keeper, ctx := testkeeper.BTCStakingKeeper(t, nil, nil, iKeeper, nil)
 		ctx = sdk.UnwrapSDKContext(ctx)
 
 		// Generate random finality providers and add them to kv store
@@ -303,7 +306,9 @@ func FuzzFinalityProviderDelegations(f *testing.F) {
 		btclcKeeper := types.NewMockBTCLightClientKeeper(ctrl)
 		btccKeeper := types.NewMockBtcCheckpointKeeper(ctrl)
 		btccKeeper.EXPECT().GetParams(gomock.Any()).Return(btcctypes.DefaultParams()).AnyTimes()
-		keeper, ctx := testkeeper.BTCStakingKeeper(t, btclcKeeper, btccKeeper, nil, nil)
+		iKeeper := types.NewMockIncentiveKeeper(ctrl)
+		iKeeper.EXPECT().InitializeFinalityProvider(gomock.Any(), gomock.Any()).AnyTimes()
+		keeper, ctx := testkeeper.BTCStakingKeeper(t, btclcKeeper, btccKeeper, iKeeper, nil)
 
 		// covenant and slashing addr
 		covenantSKs, covenantPKs, covenantQuorum := datagen.GenCovenantCommittee(r)
@@ -419,7 +424,9 @@ func FuzzPendingBTCDelegations(f *testing.F) {
 		btclcKeeper := types.NewMockBTCLightClientKeeper(ctrl)
 		btccKeeper := types.NewMockBtcCheckpointKeeper(ctrl)
 		btccKeeper.EXPECT().GetParams(gomock.Any()).Return(btcctypes.DefaultParams()).AnyTimes()
-		keeper, ctx := testkeeper.BTCStakingKeeper(t, btclcKeeper, btccKeeper, nil, nil)
+		iKeeper := types.NewMockIncentiveKeeper(ctrl)
+		iKeeper.EXPECT().InitializeFinalityProvider(gomock.Any(), gomock.Any()).AnyTimes()
+		keeper, ctx := testkeeper.BTCStakingKeeper(t, btclcKeeper, btccKeeper, iKeeper, nil)
 
 		// covenant and slashing addr
 		covenantSKs, covenantPKs, covenantQuorum := datagen.GenCovenantCommittee(r)
@@ -572,7 +579,9 @@ func TestCorrectParamsVersionIsUsed(t *testing.T) {
 	btclcKeeper := types.NewMockBTCLightClientKeeper(ctrl)
 	btccKeeper := types.NewMockBtcCheckpointKeeper(ctrl)
 	btccKeeper.EXPECT().GetParams(gomock.Any()).Return(btcctypes.DefaultParams()).AnyTimes()
-	keeper, ctx := testkeeper.BTCStakingKeeper(t, btclcKeeper, btccKeeper, nil, nil)
+	iKeeper := types.NewMockIncentiveKeeper(ctrl)
+	iKeeper.EXPECT().InitializeFinalityProvider(gomock.Any(), gomock.Any()).AnyTimes()
+	keeper, ctx := testkeeper.BTCStakingKeeper(t, btclcKeeper, btccKeeper, iKeeper, nil)
 
 	// covenant and slashing addr
 	covenantSKs, covenantPKs, covenantQuorum := datagen.GenCovenantCommittee(r)
@@ -797,4 +806,3 @@ func FuzzMultiStaking_Query_BTCDelegation(f *testing.F) {
 		require.Equal(t, btcDel.TotalSat, resp.BtcDelegation.TotalSat)
 	})
 }
-

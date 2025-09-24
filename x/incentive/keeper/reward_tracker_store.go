@@ -230,7 +230,7 @@ func (k Keeper) addFinalityProviderStaked(ctx context.Context, fp sdk.AccAddress
 
 		// needs to initialize at this point due to the amount of
 		// sats for the FP is inside the FinalityProviderCurrentRewards
-		fpCurrentRwd, err = k.initializeFinalityProvider(ctx, fp)
+		fpCurrentRwd, err = k.InitializeFinalityProvider(ctx, fp)
 		if err != nil {
 			return err
 		}

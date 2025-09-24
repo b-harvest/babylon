@@ -60,7 +60,6 @@ func (k Keeper) BtcDelegationUnbonded(ctx context.Context, fp, del sdk.AccAddres
 // and sending to the gauge. After the rewards are removed, it should
 // delete every rewards tracker value in the store related to this slashed
 // finality provider.
-// TODO: utilze this function after modifying its logic
 func (k Keeper) FpSlashed(ctx context.Context, fp sdk.AccAddress) error {
 	// finalize the period to get a new history with the current rewards available
 	endedPeriod, err := k.IncrementFinalityProviderPeriod(ctx, fp)
@@ -77,7 +76,6 @@ func (k Keeper) FpSlashed(ctx context.Context, fp sdk.AccAddress) error {
 		return err
 	}
 
-	// TODO: do not delete all reward tracker to track historical reference
 	// delete all reward tracker that correlates with the slashed finality provider.
 	k.deleteKeysFromBTCDelegationRewardsTracker(ctx, fp, keysBtcDelRwdTracker)
 	k.deleteAllFromFinalityProviderRwd(ctx, fp)
@@ -253,7 +251,7 @@ func (k Keeper) IncrementFinalityProviderPeriod(ctx context.Context, fp sdk.AccA
 
 		// initialize Validator and return 1 as ended period due
 		// to the created historical FP rewards starts at period 0
-		if _, err := k.initializeFinalityProvider(ctx, fp); err != nil {
+		if _, err := k.InitializeFinalityProvider(ctx, fp); err != nil {
 			return 0, err
 		}
 		return 1, nil
@@ -322,10 +320,10 @@ func (k Keeper) decrementReferenceCount(ctx context.Context, fp sdk.AccAddress, 
 	return k.setFinalityProviderHistoricalRewards(ctx, fp, period, historical)
 }
 
-// initializeFinalityProvider initializes a new finality provider current rewards at period 1, empty rewards and zero sats
+// InitializeFinalityProvider initializes a new finality provider current rewards at period 1, empty rewards and zero sats
 // and also creates a new historical rewards at period 0 and zero rewards as well.
 // It does not verifies if it exists prior to overwrite, who calls it needs to verify.
-func (k Keeper) initializeFinalityProvider(ctx context.Context, fp sdk.AccAddress) (types.FinalityProviderCurrentRewards, error) {
+func (k Keeper) InitializeFinalityProvider(ctx context.Context, fp sdk.AccAddress) (types.FinalityProviderCurrentRewards, error) {
 	// historical rewards starts at the period 0
 	err := k.setFinalityProviderHistoricalRewards(ctx, fp, 0, types.NewFinalityProviderHistoricalRewards(sdk.NewCoins(), uint32(1)))
 	if err != nil {

@@ -486,7 +486,7 @@ func FuzzCheckAddFinalityProviderStaked(f *testing.F) {
 		require.Equal(t, currentRwdFp1.Period, uint64(1))
 		require.Equal(t, currentRwdFp1.CurrentRewards.String(), sdk.NewCoins().String())
 
-		currentRwdFp2, err := k.initializeFinalityProvider(ctx, fp2)
+		currentRwdFp2, err := k.InitializeFinalityProvider(ctx, fp2)
 		require.NoError(t, err)
 
 		rwdOnFp2 := datagen.GenRandomCoins(r)
@@ -564,7 +564,7 @@ func FuzzCheckAddDelegationSat(f *testing.F) {
 
 		// adds delegation sat to already initilialized FP and delegation
 		// needs to initialize the FP first, then the delegation
-		fp2CurrentRwd, err := k.initializeFinalityProvider(ctx, fp2)
+		fp2CurrentRwd, err := k.InitializeFinalityProvider(ctx, fp2)
 		require.NoError(t, err)
 
 		startingActiveAmt := datagen.RandomMathInt(r, 100)
