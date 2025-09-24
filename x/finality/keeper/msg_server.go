@@ -73,8 +73,20 @@ func (ms msgServer) AddFinalitySig(goCtx context.Context, req *types.MsgAddFinal
 		return nil, errMod.Wrapf("finality block height: %d is lower than activation height %d", req.BlockHeight, activationHeight)
 	}
 
+	// Log performance of GetBlock call
+	getBlockStart := time.Now()
 	indexedBlock, err := ms.GetBlock(ctx, req.BlockHeight)
+	getBlockDuration := time.Since(getBlockStart)
+	ms.Logger(ctx).Info("GetBlock performance",
+		"height", req.BlockHeight,
+		"duration_ms", getBlockDuration.Milliseconds(),
+		"duration_ns", getBlockDuration.Nanoseconds())
+
 	if err != nil {
+		ms.Logger(ctx).Error("GetBlock failed",
+			"height", req.BlockHeight,
+			"duration_ms", getBlockDuration.Milliseconds(),
+			"error", err.Error())
 		return nil, err
 	}
 	should, err := ms.ShouldAcceptSigForHeight(ctx, indexedBlock)
@@ -129,10 +141,23 @@ func (ms msgServer) AddFinalitySig(goCtx context.Context, req *types.MsgAddFinal
 		// this is to secure the tx refunding against duplicated messages
 		return nil, types.ErrDuplicatedFinalitySig
 	}
-
+	// Log performance of GetBlock call
+	getpubRandStart := time.Now()
 	// find the timestamped public randomness commitment for this height from this finality provider
 	prCommit, err := ms.GetTimestampedPubRandCommitForHeight(ctx, req.FpBtcPk, req.BlockHeight)
 	if err != nil {
+		return nil, err
+	}
+	getpubRandDuration := time.Since(getpubRandStart)
+	ms.Logger(ctx).Info("GetBlock performance",
+		"height", req.BlockHeight,
+		"duration_ms", getpubRandDuration.Milliseconds(),
+		"duration_ns", getpubRandDuration.Nanoseconds())
+	if err != nil {
+		ms.Logger(ctx).Error("GetBlock failed",
+			"height", req.BlockHeight,
+			"duration_ms", getpubRandDuration.Milliseconds(),
+			"error", err.Error())
 		return nil, err
 	}
 

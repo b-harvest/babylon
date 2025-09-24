@@ -1,8 +1,11 @@
 package main
 
 import (
-	"cosmossdk.io/log"
 	"os"
+	"runtime/pprof"
+	"runtime/trace"
+
+	"cosmossdk.io/log"
 
 	"github.com/babylonlabs-io/babylon/v2/app"
 	"github.com/babylonlabs-io/babylon/v2/cmd/babylond/cmd"
@@ -12,6 +15,14 @@ import (
 )
 
 func main() {
+	f, _ := os.Create("cpu.prof")
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
+
+	// Start execution tracing
+	ftrace, _ := os.Create("trace.out")
+	trace.Start(ftrace)
+	defer trace.Stop()
 	params.SetAddressPrefixes()
 	rootCmd := cmd.NewRootCmd()
 
