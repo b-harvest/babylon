@@ -374,6 +374,85 @@ func newBabylonScriptPaths(
 	}, nil
 }
 
+func newBabylonScriptPathsForMsig(
+	stakerKeys []*btcec.PublicKey,
+	stakerQuorum uint32,
+	fpKeys []*btcec.PublicKey,
+	covenantKeys []*btcec.PublicKey,
+	covenantQuorum uint32,
+	lockTime uint16,
+) (*babylonScriptPaths, error) {
+
+	for _, key := range stakerKeys {
+		if key == nil {
+			return nil, fmt.Errorf("staker key is nil")
+		}
+
+		if err := checkForDuplicateKeys(key, fpKeys, covenantKeys); err != nil {
+			return nil, fmt.Errorf("error building scripts: %w", err)
+		}
+	}
+
+	// stakerSigScript, err := buildSingleKeySigScript(stakerKey, true)
+	stakerSigScript, err := buildMultiSigScript(
+		stakerKeys,
+		stakerQuorum,
+		true,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	timeLockPathScript, err := buildTimeLockScriptForMsig(stakerKeys, stakerQuorum, lockTime)
+
+	if err != nil {
+		return nil, err
+	}
+
+	covenantMultisigScript, err := buildMultiSigScript(
+		covenantKeys,
+		covenantQuorum,
+		// covenant multisig is always last in script so we do not run verify and leave
+		// last value on the stack. If we do not leave at least one element on the stack
+		// script will always error
+		false,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	fpMultisigScript, err := buildMultiSigScript(
+		fpKeys,
+		// we always require only one finality provider to sign
+		1,
+		// we need to run verify to clear the stack, as finality provider multisig is in the middle of the script
+		true,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	unbondingPathScript := aggregateScripts(
+		stakerSigScript,
+		covenantMultisigScript,
+	)
+
+	slashingPathScript := aggregateScripts(
+		stakerSigScript,
+		fpMultisigScript,
+		covenantMultisigScript,
+	)
+
+	return &babylonScriptPaths{
+		timeLockPathScript:  timeLockPathScript,
+		unbondingPathScript: unbondingPathScript,
+		slashingPathScript:  slashingPathScript,
+	}, nil
+}
+
 // BuildStakingInfo builds all Babylon specific BTC scripts that must
 // be committed to in the staking output.
 // Returned `StakingInfo` object exposes methods to build spend info for each
@@ -393,6 +472,72 @@ func BuildStakingInfo(
 
 	babylonScripts, err := newBabylonScriptPaths(
 		stakerKey,
+		fpKeys,
+		covenantKeys,
+		covenantQuorum,
+		stakingTime,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", errBuildingStakingInfo, err)
+	}
+
+	var unbondingPaths [][]byte
+	unbondingPaths = append(unbondingPaths, babylonScripts.timeLockPathScript)
+	unbondingPaths = append(unbondingPaths, babylonScripts.unbondingPathScript)
+	unbondingPaths = append(unbondingPaths, babylonScripts.slashingPathScript)
+
+	timeLockLeafHash := txscript.NewBaseTapLeaf(babylonScripts.timeLockPathScript).TapHash()
+	unbondingPathLeafHash := txscript.NewBaseTapLeaf(babylonScripts.unbondingPathScript).TapHash()
+	slashingLeafHash := txscript.NewBaseTapLeaf(babylonScripts.slashingPathScript).TapHash()
+
+	sh, err := newTaprootScriptHolder(
+		&unspendableKeyPathKey,
+		unbondingPaths,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", errBuildingStakingInfo, err)
+	}
+
+	taprootPkScript, err := sh.taprootPkScript(net)
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", errBuildingStakingInfo, err)
+	}
+
+	stakingOutput := wire.NewTxOut(int64(stakingAmount), taprootPkScript)
+
+	return &StakingInfo{
+		StakingOutput:         stakingOutput,
+		scriptHolder:          sh,
+		timeLockPathLeafHash:  timeLockLeafHash,
+		unbondingPathLeafHash: unbondingPathLeafHash,
+		slashingPathLeafHash:  slashingLeafHash,
+	}, nil
+}
+
+// BuildStakingInfo builds all Babylon specific BTC scripts that must
+// be committed to in the staking output.
+// Returned `StakingInfo` object exposes methods to build spend info for each
+// of the script spending paths which later must be included in the witness.
+// It is up to the caller to verify whether parameters provided to this function
+// obey parameters expected by Babylon chain.
+func BuildStakingInfoForMsig(
+	stakerKeys []*btcec.PublicKey,
+	stakerQuorum uint32,
+	fpKeys []*btcec.PublicKey,
+	covenantKeys []*btcec.PublicKey,
+	covenantQuorum uint32,
+	stakingTime uint16,
+	stakingAmount btcutil.Amount,
+	net *chaincfg.Params,
+) (*StakingInfo, error) {
+	unspendableKeyPathKey := unspendableKeyPathInternalPubKey()
+
+	babylonScripts, err := newBabylonScriptPathsForMsig(
+		stakerKeys,
+		stakerQuorum,
 		fpKeys,
 		covenantKeys,
 		covenantQuorum,

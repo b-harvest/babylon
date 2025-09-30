@@ -114,6 +114,32 @@ func buildTimeLockScript(
 	return builder.Script()
 }
 
+// Only holders of private keys for given pubKeys can spend after relative lock time
+// SCRIPT: <Pk1> OP_CHECKSIG <Pk2> OP_CHECKSIGADD ... <PkN> OP_CHECKSIGADD <threshold> OP_NUMEQUALVERIFY <stakingTime> OP_CHECKSEQUENCEVERIFY
+func buildTimeLockScriptForMsig(
+	pubKeys []*btcec.PublicKey,
+	stakerQuorum uint32,
+	lockTime uint16,
+) ([]byte, error) {
+	// Build multi-sig script with VERIFY to clear the stack
+	multiSigScript, err := buildMultiSigScript(pubKeys, stakerQuorum, true)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build timelock part: <lockTime> OP_CHECKSEQUENCEVERIFY
+	builder := txscript.NewScriptBuilder()
+	builder.AddInt64(int64(lockTime))
+	builder.AddOp(txscript.OP_CHECKSEQUENCEVERIFY)
+	timeLockPart, err := builder.Script()
+	if err != nil {
+		return nil, err
+	}
+
+	// Use aggregateScripts like unbondingPathScript and slashingPathScript
+	return aggregateScripts(multiSigScript, timeLockPart), nil
+}
+
 // Only holder of private key for given pubKey can spend
 // SCRIPT: <pubKey> OP_CHECKSIGVERIFY
 func buildSingleKeySigScript(

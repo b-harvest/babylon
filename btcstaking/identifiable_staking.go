@@ -57,6 +57,16 @@ type V0OpReturnData struct {
 	StakingTime               uint16
 }
 
+// V0OpReturnData represents the data that is embedded in the OP_RETURN output
+// It marshalls to exactly 71 bytes
+type V0OpReturnDataMsig struct {
+	Tag                       []byte
+	Version                   byte
+	StakerPublicKeys          *[]XonlyPubKey
+	FinalityProviderPublicKey *XonlyPubKey
+	StakingTime               uint16
+}
+
 func NewV0OpReturnData(
 	tag []byte,
 	stakerPublicKey []byte,
@@ -110,6 +120,44 @@ func NewV0OpReturnDataFromParsed(
 		Tag:                       tag,
 		Version:                   0,
 		StakerPublicKey:           &XonlyPubKey{stakerPublicKey},
+		FinalityProviderPublicKey: &XonlyPubKey{finalityProviderPublicKey},
+		StakingTime:               stakingTime,
+	}, nil
+}
+
+func NewV0OpReturnDataFromParsedMsig(
+	tag []byte,
+	stakerPublicKeys []*btcec.PublicKey,
+	finalityProviderPublicKey *btcec.PublicKey,
+	stakingTime uint16,
+) (*V0OpReturnDataMsig, error) {
+	if len(tag) != TagLen {
+		return nil, fmt.Errorf("%s:invalid tag length: %d, expected: %d", v0OpReturnCreationErrMsg, len(tag), TagLen)
+	}
+
+	for _, key := range stakerPublicKeys {
+		if key == nil {
+			return nil, fmt.Errorf("%s:nil staker public key", v0OpReturnCreationErrMsg)
+		}
+	}
+	// if stakerPublicKey == nil {
+	// 	return nil, fmt.Errorf("%s:nil staker public key", v0OpReturnCreationErrMsg)
+	// }
+
+	if finalityProviderPublicKey == nil {
+		return nil, fmt.Errorf("%s: nil finality provider public key", v0OpReturnCreationErrMsg)
+	}
+
+	// Convert []*btcec.PublicKey to []XonlyPubKey
+	xonlyKeys := make([]XonlyPubKey, len(stakerPublicKeys))
+	for i, key := range stakerPublicKeys {
+		xonlyKeys[i] = XonlyPubKey{key}
+	}
+
+	return &V0OpReturnDataMsig{
+		Tag:                       tag,
+		Version:                   0,
+		StakerPublicKeys:          &xonlyKeys,
 		FinalityProviderPublicKey: &XonlyPubKey{finalityProviderPublicKey},
 		StakingTime:               stakingTime,
 	}, nil
@@ -180,6 +228,27 @@ func (d *V0OpReturnData) ToTxOutput() (*wire.TxOut, error) {
 	return wire.NewTxOut(0, dataScript), nil
 }
 
+func (d *V0OpReturnDataMsig) Marshall() []byte {
+	var data []byte
+	data = append(data, d.Tag...)
+	data = append(data, d.Version)
+	// Marshall all staker public keys
+	for _, key := range *d.StakerPublicKeys {
+		data = append(data, key.Marshall()...)
+	}
+	data = append(data, d.FinalityProviderPublicKey.Marshall()...)
+	data = append(data, uint16ToBytes(d.StakingTime)...)
+	return data
+}
+
+func (d *V0OpReturnDataMsig) ToTxOutput() (*wire.TxOut, error) {
+	dataScript, err := txscript.NullDataScript(d.Marshall())
+	if err != nil {
+		return nil, err
+	}
+	return wire.NewTxOut(0, dataScript), nil
+}
+
 // BuildV0IdentifiableStakingOutputs creates outputs which every staking transaction must have
 func BuildV0IdentifiableStakingOutputs(
 	tag []byte,
@@ -241,6 +310,88 @@ func BuildV0IdentifiableStakingOutputsAndTx(
 	info, err := BuildV0IdentifiableStakingOutputs(
 		tag,
 		stakerKey,
+		fpKey,
+		covenantKeys,
+		covenantQuorum,
+		stakingTime,
+		stakingAmount,
+		net,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tx := wire.NewMsgTx(2)
+	tx.AddTxOut(info.StakingOutput)
+	tx.AddTxOut(info.OpReturnOutput)
+	return info, tx, nil
+}
+
+// BuildV0IdentifiableStakingOutputs creates outputs which every staking transaction must have
+func BuildStakingOutputsForMsig(
+	tag []byte,
+	stakerKeys []*btcec.PublicKey,
+	stakerQuorum uint32,
+	fpKey *btcec.PublicKey,
+	covenantKeys []*btcec.PublicKey,
+	covenantQuorum uint32,
+	stakingTime uint16,
+	stakingAmount btcutil.Amount,
+	net *chaincfg.Params,
+) (*IdentifiableStakingInfo, error) {
+	info, err := BuildStakingInfoForMsig(
+		stakerKeys,
+		stakerQuorum,
+		[]*btcec.PublicKey{fpKey},
+		covenantKeys,
+		covenantQuorum,
+		stakingTime,
+		stakingAmount,
+		net,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	opReturnData, err := NewV0OpReturnDataFromParsedMsig(tag, stakerKeys, fpKey, stakingTime)
+
+	if err != nil {
+		return nil, err
+	}
+
+	dataOutput, err := opReturnData.ToTxOutput()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &IdentifiableStakingInfo{
+		StakingOutput:         info.StakingOutput,
+		scriptHolder:          info.scriptHolder,
+		timeLockPathLeafHash:  info.timeLockPathLeafHash,
+		unbondingPathLeafHash: info.unbondingPathLeafHash,
+		slashingPathLeafHash:  info.slashingPathLeafHash,
+		OpReturnOutput:        dataOutput,
+	}, nil
+}
+
+// BuildV0IdentifiableStakingOutputsAndTx creates outputs which every staking transaction must have and
+// returns the not-funded transaction with these outputs
+func BuildStakingOutputsAndTxForMsig(
+	tag []byte,
+	stakerKeys []*btcec.PublicKey,
+	stakerQuorum uint32,
+	fpKey *btcec.PublicKey,
+	covenantKeys []*btcec.PublicKey,
+	covenantQuorum uint32,
+	stakingTime uint16,
+	stakingAmount btcutil.Amount,
+	net *chaincfg.Params,
+) (*IdentifiableStakingInfo, *wire.MsgTx, error) {
+	info, err := BuildStakingOutputsForMsig(
+		tag,
+		stakerKeys,
+		stakerQuorum,
 		fpKey,
 		covenantKeys,
 		covenantQuorum,
