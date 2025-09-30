@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	appparams "github.com/babylonlabs-io/babylon/v2/app/params"
-	"github.com/babylonlabs-io/babylon/v2/testutil/datagen"
-	ftypes "github.com/babylonlabs-io/babylon/v2/x/finality/types"
+	appparams "github.com/babylonlabs-io/babylon/v4/app/params"
+	"github.com/babylonlabs-io/babylon/v4/testutil/datagen"
+	ftypes "github.com/babylonlabs-io/babylon/v4/x/finality/types"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -86,6 +86,7 @@ func TestResumeFinalityOfSlashedFp(t *testing.T) {
 	goodBlock := d.GetIndexedBlock(lastVotedBlkHeight)
 	// fp slashed with bogus vote
 	slashFp.CastVoteForHash(lastVotedBlkHeight, badBlock.AppHash)
+	// TODO: check how it is reducing the stake of an already reduced btc del
 	slashFp.CastVoteForHash(lastVotedBlkHeight, goodBlock.AppHash)
 
 	d.GenerateNewBlockAssertExecutionSuccess()
@@ -213,7 +214,6 @@ func TestResumeFinalityOfJailedSlashedFp(t *testing.T) {
 }
 
 func TestMissingSignInfoNewlyActiveFpSet(t *testing.T) {
-	t.Parallel()
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	d := NewBabylonAppDriverTmpDir(r, t)
 	d.GenerateNewBlockAssertExecutionSuccess()

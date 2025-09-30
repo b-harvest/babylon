@@ -4,7 +4,7 @@ import (
 	"context"
 
 	sdkmath "cosmossdk.io/math"
-	"github.com/babylonlabs-io/babylon/v2/x/incentive/types"
+	"github.com/babylonlabs-io/babylon/v4/x/incentive/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -55,6 +55,64 @@ func (k Keeper) ProcessRewardTrackerEvents(ctx context.Context, untilBlkHeight u
 	}
 
 	return k.SetRewardTrackerEventLastProcessedHeight(ctx, untilBlkHeight)
+}
+
+// GetRewardTrackerEventsCompiledByBtcDel compiles all the reward tracker events from the latest processed height + 1
+// until the given block height without updating the store.
+// It also contains a filter function to filter out undesired fps, if nil is given all the events will be compiled
+func (k Keeper) GetRewardTrackerEventsCompiledByBtcDel(
+	ctx context.Context,
+	untilBlkHeight uint64,
+	filter func(fpAddr string) (include bool),
+) (map[string]sdkmath.Int, error) {
+	lastProcessedHeight, err := k.GetRewardTrackerEventLastProcessedHeight(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if filter == nil {
+		filter = func(fpAddr string) (include bool) {
+			return true // include all
+		}
+	}
+
+	satsByBtcDel := make(map[string]sdkmath.Int)
+	for blkHeight := lastProcessedHeight + 1; blkHeight <= untilBlkHeight; blkHeight++ {
+		evts, err := k.GetOrNewRewardTrackerEvent(ctx, blkHeight)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, untypedEvt := range evts.Events {
+			switch typedEvt := untypedEvt.Ev.(type) {
+			case *types.EventPowerUpdate_BtcActivated:
+				evt := typedEvt.BtcActivated
+				if !filter(evt.FpAddr) {
+					continue
+				}
+
+				currentSat, exists := satsByBtcDel[evt.BtcDelAddr]
+				if !exists {
+					currentSat = sdkmath.ZeroInt()
+				}
+				satsByBtcDel[evt.BtcDelAddr] = currentSat.Add(evt.TotalSat)
+
+			case *types.EventPowerUpdate_BtcUnbonded:
+				evt := typedEvt.BtcUnbonded
+				if !filter(evt.FpAddr) {
+					continue
+				}
+
+				currentSat, exists := satsByBtcDel[evt.BtcDelAddr]
+				if !exists {
+					currentSat = sdkmath.ZeroInt()
+				}
+				satsByBtcDel[evt.BtcDelAddr] = currentSat.Sub(evt.TotalSat)
+			}
+		}
+	}
+
+	return satsByBtcDel, nil
 }
 
 // ProcessRewardTrackerEventsAtHeight gets all the events for that block height, process those events updating

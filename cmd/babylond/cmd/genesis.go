@@ -8,7 +8,7 @@ import (
 
 	sdkmath "cosmossdk.io/math"
 
-	minttypes "github.com/babylonlabs-io/babylon/v2/x/mint/types"
+	minttypes "github.com/babylonlabs-io/babylon/v4/x/mint/types"
 	comettypes "github.com/cometbft/cometbft/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -24,18 +24,18 @@ import (
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	govv1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
-	ibctypes "github.com/cosmos/ibc-go/v8/modules/core/types"
+	ibcexported "github.com/cosmos/ibc-go/v10/modules/core/exported"
+	ibctypes "github.com/cosmos/ibc-go/v10/modules/core/types"
 	"github.com/spf13/cobra"
 
-	appparams "github.com/babylonlabs-io/babylon/v2/app/params"
-	bbn "github.com/babylonlabs-io/babylon/v2/types"
-	btccheckpointtypes "github.com/babylonlabs-io/babylon/v2/x/btccheckpoint/types"
-	btclightclienttypes "github.com/babylonlabs-io/babylon/v2/x/btclightclient/types"
-	btcstakingtypes "github.com/babylonlabs-io/babylon/v2/x/btcstaking/types"
-	checkpointingtypes "github.com/babylonlabs-io/babylon/v2/x/checkpointing/types"
-	epochingtypes "github.com/babylonlabs-io/babylon/v2/x/epoching/types"
-	finalitytypes "github.com/babylonlabs-io/babylon/v2/x/finality/types"
+	appparams "github.com/babylonlabs-io/babylon/v4/app/params"
+	bbn "github.com/babylonlabs-io/babylon/v4/types"
+	btccheckpointtypes "github.com/babylonlabs-io/babylon/v4/x/btccheckpoint/types"
+	btclightclienttypes "github.com/babylonlabs-io/babylon/v4/x/btclightclient/types"
+	btcstakingtypes "github.com/babylonlabs-io/babylon/v4/x/btcstaking/types"
+	checkpointingtypes "github.com/babylonlabs-io/babylon/v4/x/checkpointing/types"
+	epochingtypes "github.com/babylonlabs-io/babylon/v4/x/epoching/types"
+	finalitytypes "github.com/babylonlabs-io/babylon/v4/x/finality/types"
 )
 
 func PrepareGenesisCmd(defaultNodeHome string, mbm module.BasicManager) *cobra.Command {

@@ -18,9 +18,9 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	txformat "github.com/babylonlabs-io/babylon/v2/btctxformatter"
-	bbn "github.com/babylonlabs-io/babylon/v2/types"
-	btcctypes "github.com/babylonlabs-io/babylon/v2/x/btccheckpoint/types"
+	txformat "github.com/babylonlabs-io/babylon/v4/btctxformatter"
+	bbn "github.com/babylonlabs-io/babylon/v4/types"
+	btcctypes "github.com/babylonlabs-io/babylon/v4/x/btccheckpoint/types"
 )
 
 var (
@@ -397,6 +397,16 @@ func GenRandomTx(r *rand.Rand) *wire.MsgTx {
 		LockTime: 0,
 	}
 
+	return tx
+}
+
+func GenRandomTxWithOutputValue(r *rand.Rand, value int64) *wire.MsgTx {
+	tx := GenRandomTx(r)
+	if len(tx.TxOut) == 0 {
+		tx.AddTxOut(wire.NewTxOut(value, GenRandomByteArray(r, 80)))
+	} else {
+		tx.TxOut[0].Value = value
+	}
 	return tx
 }
 

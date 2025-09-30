@@ -8,9 +8,11 @@ import (
 	context "context"
 	reflect "reflect"
 
-	types "github.com/babylonlabs-io/babylon/v2/x/btcstaking/types"
-	types0 "github.com/babylonlabs-io/babylon/v2/x/epoching/types"
-	types1 "github.com/cosmos/cosmos-sdk/types"
+	types "cosmossdk.io/store/types"
+	types0 "github.com/babylonlabs-io/babylon/v4/types"
+	types1 "github.com/babylonlabs-io/babylon/v4/x/btcstaking/types"
+	types2 "github.com/babylonlabs-io/babylon/v4/x/epoching/types"
+	types3 "github.com/cosmos/cosmos-sdk/types"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -37,6 +39,21 @@ func (m *MockBTCStakingKeeper) EXPECT() *MockBTCStakingKeeperMockRecorder {
 	return m.recorder
 }
 
+// BtcDelHasCovenantQuorums mocks base method.
+func (m *MockBTCStakingKeeper) BtcDelHasCovenantQuorums(ctx context.Context, btcDel *types1.BTCDelegation, quorum uint32) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BtcDelHasCovenantQuorums", ctx, btcDel, quorum)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BtcDelHasCovenantQuorums indicates an expected call of BtcDelHasCovenantQuorums.
+func (mr *MockBTCStakingKeeperMockRecorder) BtcDelHasCovenantQuorums(ctx, btcDel, quorum interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BtcDelHasCovenantQuorums", reflect.TypeOf((*MockBTCStakingKeeper)(nil).BtcDelHasCovenantQuorums), ctx, btcDel, quorum)
+}
+
 // ClearPowerDistUpdateEvents mocks base method.
 func (m *MockBTCStakingKeeper) ClearPowerDistUpdateEvents(ctx context.Context, btcHeight uint32) {
 	m.ctrl.T.Helper()
@@ -49,25 +66,11 @@ func (mr *MockBTCStakingKeeperMockRecorder) ClearPowerDistUpdateEvents(ctx, btcH
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearPowerDistUpdateEvents", reflect.TypeOf((*MockBTCStakingKeeper)(nil).ClearPowerDistUpdateEvents), ctx, btcHeight)
 }
 
-// GetAllPowerDistUpdateEvents mocks base method.
-func (m *MockBTCStakingKeeper) GetAllPowerDistUpdateEvents(ctx context.Context, lastBTCTipHeight, btcTipHeight uint32) []*types.EventPowerDistUpdate {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAllPowerDistUpdateEvents", ctx, lastBTCTipHeight, btcTipHeight)
-	ret0, _ := ret[0].([]*types.EventPowerDistUpdate)
-	return ret0
-}
-
-// GetAllPowerDistUpdateEvents indicates an expected call of GetAllPowerDistUpdateEvents.
-func (mr *MockBTCStakingKeeperMockRecorder) GetAllPowerDistUpdateEvents(ctx, lastBTCTipHeight, btcTipHeight interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllPowerDistUpdateEvents", reflect.TypeOf((*MockBTCStakingKeeper)(nil).GetAllPowerDistUpdateEvents), ctx, lastBTCTipHeight, btcTipHeight)
-}
-
 // GetBTCDelegation mocks base method.
-func (m *MockBTCStakingKeeper) GetBTCDelegation(ctx context.Context, stakingTxHashStr string) (*types.BTCDelegation, error) {
+func (m *MockBTCStakingKeeper) GetBTCDelegation(ctx context.Context, stakingTxHashStr string) (*types1.BTCDelegation, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBTCDelegation", ctx, stakingTxHashStr)
-	ret0, _ := ret[0].(*types.BTCDelegation)
+	ret0, _ := ret[0].(*types1.BTCDelegation)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -107,10 +110,10 @@ func (mr *MockBTCStakingKeeperMockRecorder) GetCurrentBTCHeight(ctx interface{})
 }
 
 // GetFinalityProvider mocks base method.
-func (m *MockBTCStakingKeeper) GetFinalityProvider(ctx context.Context, fpBTCPK []byte) (*types.FinalityProvider, error) {
+func (m *MockBTCStakingKeeper) GetFinalityProvider(ctx context.Context, fpBTCPK []byte) (*types1.FinalityProvider, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetFinalityProvider", ctx, fpBTCPK)
-	ret0, _ := ret[0].(*types.FinalityProvider)
+	ret0, _ := ret[0].(*types1.FinalityProvider)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -122,10 +125,10 @@ func (mr *MockBTCStakingKeeperMockRecorder) GetFinalityProvider(ctx, fpBTCPK int
 }
 
 // GetParams mocks base method.
-func (m *MockBTCStakingKeeper) GetParams(ctx context.Context) types.Params {
+func (m *MockBTCStakingKeeper) GetParams(ctx context.Context) types1.Params {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetParams", ctx)
-	ret0, _ := ret[0].(types.Params)
+	ret0, _ := ret[0].(types1.Params)
 	return ret0
 }
 
@@ -136,10 +139,10 @@ func (mr *MockBTCStakingKeeperMockRecorder) GetParams(ctx interface{}) *gomock.C
 }
 
 // GetParamsByVersion mocks base method.
-func (m *MockBTCStakingKeeper) GetParamsByVersion(ctx context.Context, v uint32) *types.Params {
+func (m *MockBTCStakingKeeper) GetParamsByVersion(ctx context.Context, v uint32) *types1.Params {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetParamsByVersion", ctx, v)
-	ret0, _ := ret[0].(*types.Params)
+	ret0, _ := ret[0].(*types1.Params)
 	return ret0
 }
 
@@ -163,6 +166,20 @@ func (mr *MockBTCStakingKeeperMockRecorder) HasFinalityProvider(ctx, fpBTCPK int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasFinalityProvider", reflect.TypeOf((*MockBTCStakingKeeper)(nil).HasFinalityProvider), ctx, fpBTCPK)
 }
 
+// IsFinalityProviderDeleted mocks base method.
+func (m *MockBTCStakingKeeper) IsFinalityProviderDeleted(ctx context.Context, fpBtcPk *types0.BIP340PubKey) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsFinalityProviderDeleted", ctx, fpBtcPk)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsFinalityProviderDeleted indicates an expected call of IsFinalityProviderDeleted.
+func (mr *MockBTCStakingKeeperMockRecorder) IsFinalityProviderDeleted(ctx, fpBtcPk interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsFinalityProviderDeleted", reflect.TypeOf((*MockBTCStakingKeeper)(nil).IsFinalityProviderDeleted), ctx, fpBtcPk)
+}
+
 // JailFinalityProvider mocks base method.
 func (m *MockBTCStakingKeeper) JailFinalityProvider(ctx context.Context, fpBTCPK []byte) error {
 	m.ctrl.T.Helper()
@@ -175,6 +192,20 @@ func (m *MockBTCStakingKeeper) JailFinalityProvider(ctx context.Context, fpBTCPK
 func (mr *MockBTCStakingKeeperMockRecorder) JailFinalityProvider(ctx, fpBTCPK interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "JailFinalityProvider", reflect.TypeOf((*MockBTCStakingKeeper)(nil).JailFinalityProvider), ctx, fpBTCPK)
+}
+
+// PowerDistUpdateEventBtcHeightStoreIterator mocks base method.
+func (m *MockBTCStakingKeeper) PowerDistUpdateEventBtcHeightStoreIterator(ctx context.Context, btcHeight uint32) types.Iterator {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PowerDistUpdateEventBtcHeightStoreIterator", ctx, btcHeight)
+	ret0, _ := ret[0].(types.Iterator)
+	return ret0
+}
+
+// PowerDistUpdateEventBtcHeightStoreIterator indicates an expected call of PowerDistUpdateEventBtcHeightStoreIterator.
+func (mr *MockBTCStakingKeeperMockRecorder) PowerDistUpdateEventBtcHeightStoreIterator(ctx, btcHeight interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PowerDistUpdateEventBtcHeightStoreIterator", reflect.TypeOf((*MockBTCStakingKeeper)(nil).PowerDistUpdateEventBtcHeightStoreIterator), ctx, btcHeight)
 }
 
 // SlashFinalityProvider mocks base method.
@@ -206,7 +237,7 @@ func (mr *MockBTCStakingKeeperMockRecorder) UnjailFinalityProvider(ctx, fpBTCPK 
 }
 
 // UpdateFinalityProvider mocks base method.
-func (m *MockBTCStakingKeeper) UpdateFinalityProvider(ctx context.Context, fp *types.FinalityProvider) error {
+func (m *MockBTCStakingKeeper) UpdateFinalityProvider(ctx context.Context, fp *types1.FinalityProvider) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateFinalityProvider", ctx, fp)
 	ret0, _ := ret[0].(error)
@@ -243,10 +274,10 @@ func (m *MockCheckpointingKeeper) EXPECT() *MockCheckpointingKeeperMockRecorder 
 }
 
 // GetEpoch mocks base method.
-func (m *MockCheckpointingKeeper) GetEpoch(ctx context.Context) *types0.Epoch {
+func (m *MockCheckpointingKeeper) GetEpoch(ctx context.Context) *types2.Epoch {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetEpoch", ctx)
-	ret0, _ := ret[0].(*types0.Epoch)
+	ret0, _ := ret[0].(*types2.Epoch)
 	return ret0
 }
 
@@ -308,7 +339,7 @@ func (m *MockIncentiveKeeper) EXPECT() *MockIncentiveKeeperMockRecorder {
 }
 
 // AddEventBtcDelegationActivated mocks base method.
-func (m *MockIncentiveKeeper) AddEventBtcDelegationActivated(ctx context.Context, height uint64, fp, del types1.AccAddress, sat uint64) error {
+func (m *MockIncentiveKeeper) AddEventBtcDelegationActivated(ctx context.Context, height uint64, fp, del types3.AccAddress, sat uint64) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddEventBtcDelegationActivated", ctx, height, fp, del, sat)
 	ret0, _ := ret[0].(error)
@@ -322,7 +353,7 @@ func (mr *MockIncentiveKeeperMockRecorder) AddEventBtcDelegationActivated(ctx, h
 }
 
 // AddEventBtcDelegationUnbonded mocks base method.
-func (m *MockIncentiveKeeper) AddEventBtcDelegationUnbonded(ctx context.Context, height uint64, fp, del types1.AccAddress, sat uint64) error {
+func (m *MockIncentiveKeeper) AddEventBtcDelegationUnbonded(ctx context.Context, height uint64, fp, del types3.AccAddress, sat uint64) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddEventBtcDelegationUnbonded", ctx, height, fp, del, sat)
 	ret0, _ := ret[0].(error)
@@ -336,7 +367,7 @@ func (mr *MockIncentiveKeeperMockRecorder) AddEventBtcDelegationUnbonded(ctx, he
 }
 
 // IndexRefundableMsg mocks base method.
-func (m *MockIncentiveKeeper) IndexRefundableMsg(ctx context.Context, msg types1.Msg) {
+func (m *MockIncentiveKeeper) IndexRefundableMsg(ctx context.Context, msg types3.Msg) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "IndexRefundableMsg", ctx, msg)
 }

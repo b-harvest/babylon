@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"cosmossdk.io/store/prefix"
-	"github.com/babylonlabs-io/babylon/v2/x/incentive/types"
+	"github.com/babylonlabs-io/babylon/v4/x/incentive/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -23,6 +23,10 @@ func (k Keeper) InitGenesis(ctx context.Context, gs types.GenesisState) error {
 		}
 
 		k.SetBTCStakingGauge(ctx, entry.Height, entry.Gauge)
+	}
+
+	for _, entry := range gs.FpDirectGauges {
+		k.SetFPDirectGauge(ctx, entry.Height, entry.Gauge)
 	}
 
 	for _, entry := range gs.RewardGauges {
@@ -68,7 +72,7 @@ func (k Keeper) InitGenesis(ctx context.Context, gs types.GenesisState) error {
 		if acc == nil {
 			return fmt.Errorf("finality provider account with address %s does not exist", entry.Address)
 		}
-		if err := k.setFinalityProviderCurrentRewards(ctx, fpAddr, *entry.Rewards); err != nil {
+		if err := k.SetFinalityProviderCurrentRewards(ctx, fpAddr, *entry.Rewards); err != nil {
 			return err
 		}
 	}
@@ -179,6 +183,11 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 		return nil, err
 	}
 
+	fpDirectGauges, err := k.fpDirectGauges(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	return &types.GenesisState{
 		Params:                                k.GetParams(ctx),
 		BtcStakingGauges:                      bsg,
@@ -191,6 +200,7 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 		BtcDelegatorsToFps:                    d2fp,
 		EventRewardTracker:                    evtsRwdTracker,
 		LastProcessedHeightEventRewardTracker: lastProcessedBlkHeightEvtsRwdTracker,
+		FpDirectGauges:                        fpDirectGauges,
 	}, nil
 }
 
@@ -472,6 +482,33 @@ func (k Keeper) rewardTrackerEventsEntry(ctx context.Context) ([]types.EventsPow
 		entry := types.EventsPowerUpdateAtHeightEntry{
 			Height: height,
 			Events: &v,
+		}
+		if err := entry.Validate(); err != nil {
+			return nil, err
+		}
+		entries = append(entries, entry)
+	}
+
+	return entries, nil
+}
+
+// fpDirectGauges loads all FP direct gauges stored.
+// This function has high resource consumption and should be only used on export genesis.
+func (k Keeper) fpDirectGauges(ctx context.Context) ([]types.FPDirectGaugeEntry, error) {
+	entries := make([]types.FPDirectGaugeEntry, 0)
+
+	iter := k.fpDirectGaugeStore(ctx).Iterator(nil, nil)
+	defer iter.Close()
+
+	for ; iter.Valid(); iter.Next() {
+		var gauge types.Gauge
+		if err := k.cdc.Unmarshal(iter.Value(), &gauge); err != nil {
+			return nil, err
+		}
+		height := sdk.BigEndianToUint64(iter.Key())
+		entry := types.FPDirectGaugeEntry{
+			Height: height,
+			Gauge:  &gauge,
 		}
 		if err := entry.Validate(); err != nil {
 			return nil, err

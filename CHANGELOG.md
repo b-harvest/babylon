@@ -35,6 +35,56 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## Unreleased
+
+## v4.0.0-rc.0
+
+### Improvements
+
+- [#1734] Bump repository version to `v4`
+- [#1736](https://github.com/babylonlabs-io/babylon/pull/1736) bump cosmos-sdk to `v0.53.2`
+- [#1633](https://github.com/babylonlabs-io/babylon/pull/1663) Add spam prevention mechanisms to epoching module with minimum amount validation and gas consumption limits for wrapped delegate operations.
+- [#1404](https://github.com/babylonlabs-io/babylon/pull/1404) Refactor power dist event processing.
+- [#1347](https://github.com/babylonlabs-io/babylon/pull/1344) Add `MsgType` field to `QueuedMessageResponse` message.
+- [#1737](https://github.com/babylonlabs-io/babylon/pull/1737) bump ibc-go to `v10` and wire up IBC `v2`
+- [#1747](https://github.com/babylonlabs-io/babylon/pull/1747) bump cosmos-sdk to `v0.53.4`
+- [#1062](https://github.com/babylonlabs-io/babylon/pull/1062) Add `anteHandler` to avoid fee grants on refundable tx (`x/incentive`)
+- [#1060](https://github.com/babylonlabs-io/babylon/pull/1060) Optimize `PubRandCommit` lookup in `x/finality` module
+- [#1335](https://github.com/babylonlabs-io/babylon/pull/1335) Tweaks on BTC stake expansion feature.
+- [#1352](https://github.com/babylonlabs-io/babylon/pull/1352) Add stake expansion signatures in BTC delegation query response
+- [#1369](https://github.com/babylonlabs-io/babylon/pull/1369) fix: update stake expansion validation to allow expanding
+- [#1418](https://github.com/babylonlabs-io/babylon/pull/1418) fix: add stake expansion covenant signature to the events
+- [#1740](https://github.com/babylonlabs-io/babylon/pull/1740) Simplify selective slashing message handler
+- [#1416](https://github.com/babylonlabs-io/babylon/pull/1416) Relax requirements for stake expansion funding output
+- [#1428](https://github.com/babylonlabs-io/babylon/pull/1428) Update stake expansion events
+- [#1545](https://github.com/babylonlabs-io/babylon/pull/1545) fix: remove unnecessary covenant verification for stake expansion delegation
+- [#1410](https://github.com/babylonlabs-io/babylon/pull/1410) Add stake expansion e2e test
+- [#1707](https://github.com/babylonlabs-io/babylon/pull/1707) Add `x/costaking`
+
+### Features
+
+- [#1231](https://github.com/babylonlabs-io/babylon/pull/1231) Add BTC stake expansion.
+
+## v2.3.0
+
+### Improvements
+
+- [#1269](https://github.com/babylonlabs-io/babylon/pull/1269) Add fee collector e2e tests.
+- [#1344](https://github.com/babylonlabs-io/babylon/pull/1344) Bump cosmos-sdk and
+remove send restrictions
+- [#1398](https://github.com/babylonlabs-io/babylon/pull/1398) Add custom tokenfactory
+bindings (thanks @benluelo for contribution)
+- [#1594](https://github.com/babylonlabs-io/babylon/pull/1594) Add soft deleted to finality providers response.
+- [#1611](https://github.com/babylonlabs-io/babylon/pull/1611) Rename `x/btcstaking` prefixes as `v3.x`.
+- [#1668](https://github.com/babylonlabs-io/babylon/pull/1668) Bump dependencies based on dependabot alerts
+
+### Bug Fixes
+
+- [#1355](https://github.com/babylonlabs-io/babylon/pull/1355) Allow empty fees on genesis transactions
+- [#1453](https://github.com/babylonlabs-io/babylon/pull/1453) fix: inactive FP event on full unbonding
+- [#1593](https://github.com/babylonlabs-io/babylon/pull/1593) fix: disabled duplicate fp bbn addr registering
+- [#1714](https://github.com/babylonlabs-io/babylon/pull/1714) Add BLS key flags to `rollback` and `bootstrap-state` cmds
+
 ## v2.2.0
 
 ### Improvements

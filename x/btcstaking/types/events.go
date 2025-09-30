@@ -7,7 +7,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	bbn "github.com/babylonlabs-io/babylon/v2/types"
+	bbn "github.com/babylonlabs-io/babylon/v4/types"
 )
 
 func NewEventPowerDistUpdateWithBTCDel(ev *EventBTCDelegationStateUpdate) *EventPowerDistUpdate {
@@ -90,7 +90,7 @@ func NewInclusionProofEvent(
 func NewBtcDelCreationEvent(
 	btcDel *BTCDelegation,
 ) *EventBTCDelegationCreated {
-	return &EventBTCDelegationCreated{
+	e := &EventBTCDelegationCreated{
 		StakingTxHex:              hex.EncodeToString(btcDel.StakingTx),
 		StakingOutputIndex:        strconv.FormatUint(uint64(btcDel.StakingOutputIdx), 10),
 		ParamsVersion:             strconv.FormatUint(uint64(btcDel.ParamsVersion), 10),
@@ -102,17 +102,29 @@ func NewBtcDelCreationEvent(
 		NewState:                  BTCDelegationStatus_PENDING.String(),
 		StakerAddr:                btcDel.StakerAddr,
 	}
+	if btcDel.IsStakeExpansion() {
+		e.PreviousStakingTxHashHex = btcDel.MustGetStakeExpansionTxHash().String()
+	}
+	return e
 }
 
 func NewCovenantSignatureReceivedEvent(
 	btcDel *BTCDelegation,
 	covPK *bbn.BIP340PubKey,
 	unbondingTxSig *bbn.BIP340Signature,
+	stakeExpansionTxSig *bbn.BIP340Signature,
 ) *EventCovenantSignatureReceived {
+	var stakeExpansionTxSigHex string
+
+	if btcDel.IsStakeExpansion() && stakeExpansionTxSig != nil {
+		stakeExpansionTxSigHex = stakeExpansionTxSig.ToHexStr()
+	}
+
 	return &EventCovenantSignatureReceived{
-		StakingTxHash:                 btcDel.MustGetStakingTxHash().String(),
-		CovenantBtcPkHex:              covPK.MarshalHex(),
-		CovenantUnbondingSignatureHex: unbondingTxSig.ToHexStr(),
+		StakingTxHash:                      btcDel.MustGetStakingTxHash().String(),
+		CovenantBtcPkHex:                   covPK.MarshalHex(),
+		CovenantUnbondingSignatureHex:      unbondingTxSig.ToHexStr(),
+		CovenantStakeExpansionSignatureHex: stakeExpansionTxSigHex,
 	}
 }
 
@@ -188,6 +200,16 @@ func EmitEarlyUnbondedEvent(sdkCtx sdk.Context, stakingTxHash string, inclusionH
 	}
 }
 
+// EmitEarlyUnbondedEventByStakeExpansion emits events for an early unbonded BTC delegation
+// due to stake expansion
+func EmitEarlyUnbondedEventByStakeExpansion(sdkCtx sdk.Context, stakingTxHash, stakeExpansionTxHash string, inclusionHeight uint32) {
+	ev := NewDelegationUnbondedEarlyEvent(stakingTxHash, inclusionHeight)
+	ev.StakeExpansionTxHash = stakeExpansionTxHash
+	if err := sdkCtx.EventManager().EmitTypedEvent(ev); err != nil {
+		panic(fmt.Errorf("failed to emit event the early unbonded BTC delegation: %w", err))
+	}
+}
+
 // EmitExpiredDelegationEvent emits events for an expired delegation
 func EmitExpiredDelegationEvent(sdkCtx sdk.Context, stakingTxHash string) {
 	ev := NewExpiredDelegationEvent(stakingTxHash)
@@ -212,4 +234,8 @@ func EmitJailedFPEvent(sdkCtx sdk.Context, fpBTCPK *bbn.BIP340PubKey) {
 			"failed to emit FinalityProviderStatusChangeEvent with status %s: %w",
 			FinalityProviderStatus_FINALITY_PROVIDER_STATUS_JAILED.String(), err))
 	}
+}
+
+func (fps FinalityProviderStatus) IsActive() bool {
+	return fps == FinalityProviderStatus_FINALITY_PROVIDER_STATUS_ACTIVE
 }

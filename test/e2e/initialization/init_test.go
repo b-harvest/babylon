@@ -12,7 +12,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/v2/test/e2e/initialization"
+	"github.com/babylonlabs-io/babylon/v4/app"
+	"github.com/babylonlabs-io/babylon/v4/test/e2e/initialization"
 )
 
 const forkHeight = 10
@@ -50,7 +51,8 @@ func TestChainInit(t *testing.T) {
 		dataDir, err = os.MkdirTemp("", "bbn-e2e-testnet-test")
 	)
 
-	chain, err := initialization.InitChain(id, dataDir, nodeConfigs, time.Second*3, time.Second, forkHeight, nil)
+	chain, err := initialization.InitChain(
+		id, dataDir, nodeConfigs, time.Second*3, time.Second, forkHeight, nil, app.DefaultGasLimit, nil)
 	require.NoError(t, err)
 
 	require.Equal(t, chain.ChainMeta.DataDir, dataDir)

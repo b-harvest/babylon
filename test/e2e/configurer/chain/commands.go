@@ -13,25 +13,29 @@ import (
 	"time"
 
 	govv1 "cosmossdk.io/api/cosmos/gov/v1"
-	txformat "github.com/babylonlabs-io/babylon/v2/btctxformatter"
-	"github.com/babylonlabs-io/babylon/v2/test/e2e/containers"
-	"github.com/babylonlabs-io/babylon/v2/test/e2e/initialization"
-	"github.com/babylonlabs-io/babylon/v2/test/e2e/util"
-	"github.com/babylonlabs-io/babylon/v2/testutil/datagen"
-	bbn "github.com/babylonlabs-io/babylon/v2/types"
-	btccheckpointtypes "github.com/babylonlabs-io/babylon/v2/x/btccheckpoint/types"
-	blc "github.com/babylonlabs-io/babylon/v2/x/btclightclient/types"
-	cttypes "github.com/babylonlabs-io/babylon/v2/x/checkpointing/types"
+	txformat "github.com/babylonlabs-io/babylon/v4/btctxformatter"
+	"github.com/babylonlabs-io/babylon/v4/test/e2e/containers"
+	"github.com/babylonlabs-io/babylon/v4/test/e2e/initialization"
+	"github.com/babylonlabs-io/babylon/v4/test/e2e/util"
+	"github.com/babylonlabs-io/babylon/v4/testutil/datagen"
+	bbn "github.com/babylonlabs-io/babylon/v4/types"
+	btccheckpointtypes "github.com/babylonlabs-io/babylon/v4/x/btccheckpoint/types"
+	blc "github.com/babylonlabs-io/babylon/v4/x/btclightclient/types"
+	cttypes "github.com/babylonlabs-io/babylon/v4/x/checkpointing/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	sdkquerytypes "github.com/cosmos/cosmos-sdk/types/query"
-	icatypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/types"
+	icatypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/types"
 	"github.com/stretchr/testify/require"
 )
 
 const (
 	flagKeyringTest = "--keyring-backend=test"
 )
+
+func (n *NodeConfig) GetChainID() string {
+	return n.chainId
+}
 
 func (n *NodeConfig) GetWallet(walletName string) string {
 	n.LogActionF("retrieving wallet %s", walletName)
@@ -43,6 +47,11 @@ func (n *NodeConfig) GetWallet(walletName string) string {
 	walletAddr = strings.TrimSuffix(walletAddr, "\n")
 	n.LogActionF("wallet %s found, wallet address - %s", walletName, walletAddr)
 	return walletAddr
+}
+
+func (n *NodeConfig) ExecRawCmd(cmd []string) (bytes.Buffer, bytes.Buffer,
+	error) {
+	return n.containerManager.ExecCmd(n.t, n.Name, cmd, "")
 }
 
 // KeysAdd creates a new key in the keyring
@@ -148,7 +157,7 @@ func (n *NodeConfig) SendHeaderHex(headerHex string) {
 func (n *NodeConfig) InsertNewEmptyBtcHeader(r *rand.Rand) *blc.BTCHeaderInfo {
 	tipResp, err := n.QueryTip()
 	require.NoError(n.t, err)
-	n.t.Logf("Retrieved current tip of btc headerchain. Height: %d", tipResp.Height)
+	n.t.Logf("Retrieved current tip of btc headerchain inserting empty header. Height: %d", tipResp.Height)
 
 	tip, err := ParseBTCHeaderInfoResponseToInfo(tipResp)
 	require.NoError(n.t, err)
@@ -502,7 +511,7 @@ func (n *NodeConfig) SubmitRefundableTxWithAssertion(
 	if shouldBeRefunded {
 		require.Equal(n.t, submitterBalanceBefore, submitterBalanceAfter)
 	} else {
-		require.True(n.t, submitterBalanceBefore.IsAllGT(submitterBalanceAfter))
+		require.False(n.t, submitterBalanceBefore.Equal(submitterBalanceAfter))
 	}
 }
 
@@ -564,4 +573,11 @@ func (n *NodeConfig) FailICASendTx(from, connectionID, packetMsgPath string) {
 	n.LogActionF("Failed to perform ICA send (as expected)")
 }
 
+func (n *NodeConfig) Delegate(fromWallet, validator string, amount string, overallFlags ...string) {
+	n.LogActionF("delegating from %s to validator %s", fromWallet, validator)
+	cmd := []string{"babylond", "tx", "epoching", "delegate", validator, amount, fmt.Sprintf("--from=%s", fromWallet)}
+	_, _, err := n.containerManager.ExecTxCmd(n.t, n.chainId, n.Name, append(cmd, overallFlags...))
 
+	require.NoError(n.t, err)
+	n.LogActionF("successfully delegated %s to validator %s", fromWallet, validator)
+}

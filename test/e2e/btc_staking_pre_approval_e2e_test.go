@@ -13,16 +13,16 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/babylonlabs-io/babylon/v2/crypto/eots"
-	"github.com/babylonlabs-io/babylon/v2/test/e2e/configurer"
-	"github.com/babylonlabs-io/babylon/v2/test/e2e/configurer/chain"
-	"github.com/babylonlabs-io/babylon/v2/test/e2e/initialization"
-	"github.com/babylonlabs-io/babylon/v2/testutil/datagen"
-	bbn "github.com/babylonlabs-io/babylon/v2/types"
-	bstypes "github.com/babylonlabs-io/babylon/v2/x/btcstaking/types"
-	ckpttypes "github.com/babylonlabs-io/babylon/v2/x/checkpointing/types"
-	ftypes "github.com/babylonlabs-io/babylon/v2/x/finality/types"
-	itypes "github.com/babylonlabs-io/babylon/v2/x/incentive/types"
+	"github.com/babylonlabs-io/babylon/v4/crypto/eots"
+	"github.com/babylonlabs-io/babylon/v4/test/e2e/configurer"
+	"github.com/babylonlabs-io/babylon/v4/test/e2e/configurer/chain"
+	"github.com/babylonlabs-io/babylon/v4/test/e2e/initialization"
+	"github.com/babylonlabs-io/babylon/v4/testutil/datagen"
+	bbn "github.com/babylonlabs-io/babylon/v4/types"
+	bstypes "github.com/babylonlabs-io/babylon/v4/x/btcstaking/types"
+	ckpttypes "github.com/babylonlabs-io/babylon/v4/x/checkpointing/types"
+	ftypes "github.com/babylonlabs-io/babylon/v4/x/finality/types"
+	itypes "github.com/babylonlabs-io/babylon/v4/x/incentive/types"
 )
 
 type BTCStakingPreApprovalTestSuite struct {
@@ -57,7 +57,7 @@ func (s *BTCStakingPreApprovalTestSuite) SetupSuite() {
 	//
 	// 1. Configure 1 chain with some validator nodes
 	// 2. Execute various e2e tests
-	s.configurer, err = configurer.NewBTCStakingConfigurer(s.T(), true)
+	s.configurer, err = configurer.NewBabylonConfigurer(s.T(), true)
 	s.NoError(err)
 	err = s.configurer.ConfigureChains()
 	s.NoError(err)
@@ -74,7 +74,7 @@ func (s *BTCStakingPreApprovalTestSuite) TearDownSuite() {
 
 func (s *BTCStakingPreApprovalTestSuite) Test1CreateFinalityProviderAndDelegation() {
 	chainA := s.configurer.GetChainConfig(0)
-	chainA.WaitUntilHeight(1)
+	chainA.WaitUntilHeight(3)
 	nonValidatorNode, err := chainA.GetNodeAtIndex(2)
 	s.NoError(err)
 
@@ -108,8 +108,9 @@ func (s *BTCStakingPreApprovalTestSuite) Test1CreateFinalityProviderAndDelegatio
 	s.NoError(err)
 
 	// submit the message for creating BTC delegation
+	delBtcPK := bbn.NewBIP340PubKeyFromBTCPK(s.delBTCSK.PubKey())
 	nonValidatorNode.CreateBTCDelegation(
-		bbn.NewBIP340PubKeyFromBTCPK(s.delBTCSK.PubKey()),
+		delBtcPK,
 		pop,
 		stakingTx,
 		// We are passing `nil` as inclusion proof will be provided in separate tx
@@ -142,6 +143,10 @@ func (s *BTCStakingPreApprovalTestSuite) Test1CreateFinalityProviderAndDelegatio
 	delegation := nonValidatorNode.QueryBtcDelegation(testStakingInfo.StakingTx.TxHash().String())
 	s.NotNil(delegation)
 	s.Equal(delegation.BtcDelegation.StakerAddr, nonValidatorNode.PublicAddress)
+
+	fps := nonValidatorNode.QueryFinalityProviders()
+	s.Equal(len(fps), 1)
+	s.Equal(fps[0].Addr, s.cacheFP.Addr)
 }
 
 func (s *BTCStakingPreApprovalTestSuite) Test2SubmitCovenantSignature() {
@@ -227,6 +232,7 @@ func (s *BTCStakingPreApprovalTestSuite) Test2SubmitCovenantSignature() {
 				covenantSlashingSigs[i].AdaptorSigs,
 				bbn.NewBIP340SignatureFromBTCSig(covUnbondingSigs[i]),
 				covenantUnbondingSlashingSigs[i].AdaptorSigs,
+				nil,
 			)
 			// wait for a block so that above txs take effect
 			nonValidatorNode.WaitForNextBlock()
@@ -247,7 +253,7 @@ func (s *BTCStakingPreApprovalTestSuite) Test2SubmitCovenantSignature() {
 	s.Len(activeDels.Dels, 1)
 
 	activeDel := activeDels.Dels[0]
-	s.True(activeDel.HasCovenantQuorums(s.covenantQuorum))
+	s.True(activeDel.HasCovenantQuorums(s.covenantQuorum, 0))
 }
 
 func (s *BTCStakingPreApprovalTestSuite) Test3SendStakingTransctionInclusionProof() {
@@ -261,7 +267,7 @@ func (s *BTCStakingPreApprovalTestSuite) Test3SendStakingTransctionInclusionProo
 
 	btcDel, err := chain.ParseRespBTCDelToBTCDel(verifiedDelegations[0])
 	s.NoError(err)
-	s.True(btcDel.HasCovenantQuorums(s.covenantQuorum))
+	s.True(btcDel.HasCovenantQuorums(s.covenantQuorum, 0))
 
 	// staking tx hash
 	stakingMsgTx, err := bbn.NewBTCTxFromBytes(btcDel.StakingTx)
@@ -290,7 +296,7 @@ func (s *BTCStakingPreApprovalTestSuite) Test3SendStakingTransctionInclusionProo
 func (s *BTCStakingPreApprovalTestSuite) Test4CommitPublicRandomnessAndSubmitFinalitySignature() {
 	chainA := s.configurer.GetChainConfig(0)
 	chainA.WaitUntilHeight(1)
-	nonValidatorNode, err := chainA.GetNodeAtIndex(2)
+	n, err := chainA.GetNodeAtIndex(2)
 	s.NoError(err)
 
 	/*
@@ -299,9 +305,10 @@ func (s *BTCStakingPreApprovalTestSuite) Test4CommitPublicRandomnessAndSubmitFin
 	// commit public randomness list
 	numPubRand := uint64(100)
 	commitStartHeight := uint64(1)
+
 	randListInfo, msgCommitPubRandList, err := datagen.GenRandomMsgCommitPubRandList(s.r, s.fptBTCSK, commitStartHeight, numPubRand)
 	s.NoError(err)
-	nonValidatorNode.CommitPubRandList(
+	n.CommitPubRandListFromNode(
 		msgCommitPubRandList.FpBtcPk,
 		msgCommitPubRandList.StartHeight,
 		msgCommitPubRandList.NumPubRand,
@@ -309,32 +316,38 @@ func (s *BTCStakingPreApprovalTestSuite) Test4CommitPublicRandomnessAndSubmitFin
 		msgCommitPubRandList.Sig,
 	)
 
+	n.WaitForNextBlockWithSleep50ms()
+
+	fpCommitPubRand := n.QueryListPubRandCommit(msgCommitPubRandList.FpBtcPk)
+	fpPubRand := fpCommitPubRand[commitStartHeight]
+	s.Require().Equal(fpPubRand.NumPubRand, numPubRand)
+
 	// no reward gauge for finality provider and delegation yet
 	fpBabylonAddr, err := sdk.AccAddressFromBech32(s.cacheFP.Addr)
 	s.NoError(err)
 
-	_, err = nonValidatorNode.QueryRewardGauge(fpBabylonAddr)
+	_, err = n.QueryRewardGauge(fpBabylonAddr)
 	s.ErrorContains(err, itypes.ErrRewardGaugeNotFound.Error())
 	delBabylonAddr := fpBabylonAddr
 
 	// finalize epochs from 1 to the current epoch
-	currentEpoch, err := nonValidatorNode.QueryCurrentEpoch()
+	currentEpoch, err := n.QueryCurrentEpoch()
 	s.NoError(err)
 
 	// wait until the end epoch is sealed
 	s.Eventually(func() bool {
-		resp, err := nonValidatorNode.QueryRawCheckpoint(currentEpoch)
+		resp, err := n.QueryRawCheckpoint(currentEpoch)
 		if err != nil {
 			return false
 		}
 		return resp.Status == ckpttypes.Sealed
 	}, time.Minute, time.Millisecond*50)
-	nonValidatorNode.FinalizeSealedEpochs(1, currentEpoch)
+	n.FinalizeSealedEpochs(1, currentEpoch)
 
 	// ensure the committed epoch is finalized
 	lastFinalizedEpoch := uint64(0)
 	s.Eventually(func() bool {
-		lastFinalizedEpoch, err = nonValidatorNode.QueryLastFinalizedEpoch()
+		lastFinalizedEpoch, err = n.QueryLastFinalizedEpoch()
 		if err != nil {
 			return false
 		}
@@ -342,38 +355,34 @@ func (s *BTCStakingPreApprovalTestSuite) Test4CommitPublicRandomnessAndSubmitFin
 	}, time.Minute, time.Millisecond*50)
 
 	// ensure btc staking is activated
-	var activatedHeight uint64
-	s.Eventually(func() bool {
-		activatedHeight, err = nonValidatorNode.QueryActivatedHeight()
-		if err != nil {
-			return false
-		}
-		return activatedHeight > 0
-	}, time.Minute, time.Millisecond*50)
-	s.T().Logf("the activated height is %d", activatedHeight)
+	activatedHeight := n.WaitFinalityIsActivated()
 
 	/*
 		submit finality signature
 	*/
 	// get block to vote
-	blockToVote, err := nonValidatorNode.QueryBlock(int64(activatedHeight))
+	blockToVote, err := n.QueryBlock(int64(activatedHeight))
 	s.NoError(err)
 	appHash := blockToVote.AppHash
 
 	idx := activatedHeight - commitStartHeight
+
 	msgToSign := append(sdk.Uint64ToBigEndian(activatedHeight), appHash...)
+
 	// generate EOTS signature
 	sig, err := eots.Sign(s.fptBTCSK, randListInfo.SRList[idx], msgToSign)
 	s.NoError(err)
 	eotsSig := bbn.NewSchnorrEOTSSigFromModNScalar(sig)
+
+	n.WaitForNextBlock()
 	// submit finality signature
-	nonValidatorNode.SubmitRefundableTxWithAssertion(func() {
-		nonValidatorNode.AddFinalitySigFromVal(s.cacheFP.BtcPk, activatedHeight, &randListInfo.PRList[idx], *randListInfo.ProofList[idx].ToProto(), appHash, eotsSig)
+	n.SubmitRefundableTxWithAssertion(func() {
+		n.AddFinalitySigFromVal(s.cacheFP.BtcPk, activatedHeight, &randListInfo.PRList[idx], *randListInfo.ProofList[idx].ToProto(), appHash, eotsSig)
 
 		// ensure vote is eventually cast
 		var finalizedBlocks []*ftypes.IndexedBlock
 		s.Eventually(func() bool {
-			finalizedBlocks = nonValidatorNode.QueryListBlocks(ftypes.QueriedBlockStatus_FINALIZED)
+			finalizedBlocks = n.QueryListBlocks(ftypes.QueriedBlockStatus_FINALIZED)
 			return len(finalizedBlocks) > 0
 		}, time.Minute, time.Millisecond*50)
 		s.Equal(activatedHeight, finalizedBlocks[0].Height)
@@ -382,16 +391,17 @@ func (s *BTCStakingPreApprovalTestSuite) Test4CommitPublicRandomnessAndSubmitFin
 	}, true)
 
 	// submit an invalid finality signature, and tx should NOT be refunded
-	nonValidatorNode.SubmitRefundableTxWithAssertion(func() {
+	n.WaitForNextBlock()
+	n.SubmitRefundableTxWithAssertion(func() {
 		_, pk, err := datagen.GenRandomBTCKeyPair(s.r)
 		s.NoError(err)
 		btcPK := bbn.NewBIP340PubKeyFromBTCPK(pk)
-		nonValidatorNode.AddFinalitySigFromVal(btcPK, activatedHeight, &randListInfo.PRList[idx], *randListInfo.ProofList[idx].ToProto(), appHash, eotsSig)
-		nonValidatorNode.WaitForNextBlock()
+		n.AddFinalitySigFromVal(btcPK, activatedHeight, &randListInfo.PRList[idx], *randListInfo.ProofList[idx].ToProto(), appHash, eotsSig)
+		n.WaitForNextBlock()
 	}, false)
 
 	// ensure finality provider has received rewards after the block is finalised
-	fpRewardGauges, err := nonValidatorNode.QueryRewardGauge(fpBabylonAddr)
+	fpRewardGauges, err := n.QueryRewardGauge(fpBabylonAddr)
 	s.NoError(err)
 	fpRewardGauge, ok := fpRewardGauges[itypes.FINALITY_PROVIDER.String()]
 	s.True(ok)
@@ -400,7 +410,7 @@ func (s *BTCStakingPreApprovalTestSuite) Test4CommitPublicRandomnessAndSubmitFin
 	s.Require().True(!fpRewardGauge.Coins[0].IsZero())
 
 	// ensure BTC delegation has received rewards after the block is finalised
-	btcDelRewardGauges, err := nonValidatorNode.QueryRewardGauge(delBabylonAddr)
+	btcDelRewardGauges, err := n.QueryRewardGauge(delBabylonAddr)
 	s.NoError(err)
 	btcDelRewardGauge, ok := btcDelRewardGauges[itypes.BTC_STAKER.String()]
 	s.True(ok)
@@ -410,7 +420,7 @@ func (s *BTCStakingPreApprovalTestSuite) Test4CommitPublicRandomnessAndSubmitFin
 	s.T().Logf("the finality provider received rewards for providing finality")
 }
 
-func (s *BTCStakingPreApprovalTestSuite) Test4WithdrawReward() {
+func (s *BTCStakingPreApprovalTestSuite) Test5WithdrawReward() {
 	chainA := s.configurer.GetChainConfig(0)
 	n, err := chainA.GetNodeAtIndex(2)
 	s.NoError(err)
@@ -420,7 +430,7 @@ func (s *BTCStakingPreApprovalTestSuite) Test4WithdrawReward() {
 }
 
 // Test5SubmitStakerUnbonding is an end-to-end test for user unbonding
-func (s *BTCStakingPreApprovalTestSuite) Test5SubmitStakerUnbonding() {
+func (s *BTCStakingPreApprovalTestSuite) Test6SubmitStakerUnbonding() {
 	chainA := s.configurer.GetChainConfig(0)
 	chainA.WaitUntilHeight(1)
 	nonValidatorNode, err := chainA.GetNodeAtIndex(2)

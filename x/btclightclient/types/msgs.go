@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	bbn "github.com/babylonlabs-io/babylon/v2/types"
+	bbn "github.com/babylonlabs-io/babylon/v4/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -60,6 +60,21 @@ func (msg *MsgInsertHeaders) ReporterAddress() sdk.AccAddress {
 }
 
 func (msg *MsgInsertHeaders) ValidateStateless() error {
+	_, err := sdk.AccAddressFromBech32(msg.Signer)
+
+	if err != nil {
+		return err
+	}
+
+	if len(msg.Headers) == 0 {
+		return fmt.Errorf("empty headers list")
+	}
+
+	return nil
+}
+
+// ValidateBasic performs stateless validation on MsgInsertHeaders
+func (msg *MsgInsertHeaders) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Signer)
 
 	if err != nil {

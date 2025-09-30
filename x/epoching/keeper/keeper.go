@@ -8,7 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stktypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	"github.com/babylonlabs-io/babylon/v2/x/epoching/types"
+	"github.com/babylonlabs-io/babylon/v4/x/epoching/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 )
 
@@ -25,6 +25,14 @@ type (
 		authority string
 	}
 )
+
+// ValidateDelegatePoolAccount validates that the delegation pool module account exists
+// This should be called before NewKeeper to ensure proper setup
+func ValidateDelegatePoolAccount(ak types.AccountKeeper) {
+	if addr := ak.GetModuleAddress(types.DelegatePoolModuleName); addr == nil {
+		panic(fmt.Sprintf("the %s module account has not been set", types.DelegatePoolModuleName))
+	}
+}
 
 func NewKeeper(
 	cdc codec.BinaryCodec,

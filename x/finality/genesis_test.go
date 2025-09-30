@@ -5,10 +5,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	keepertest "github.com/babylonlabs-io/babylon/v2/testutil/keeper"
-	"github.com/babylonlabs-io/babylon/v2/testutil/nullify"
-	"github.com/babylonlabs-io/babylon/v2/x/finality"
-	"github.com/babylonlabs-io/babylon/v2/x/finality/types"
+	keepertest "github.com/babylonlabs-io/babylon/v4/testutil/keeper"
+	"github.com/babylonlabs-io/babylon/v4/testutil/nullify"
+	"github.com/babylonlabs-io/babylon/v4/x/finality"
+	"github.com/babylonlabs-io/babylon/v4/x/finality/types"
 )
 
 func TestGenesis(t *testing.T) {
@@ -16,7 +16,7 @@ func TestGenesis(t *testing.T) {
 		Params: types.DefaultParams(),
 	}
 
-	k, ctx := keepertest.FinalityKeeper(t, nil, nil, nil)
+	k, ctx := keepertest.FinalityKeeper(t, nil, nil, nil, nil)
 	finality.InitGenesis(ctx, *k, genesisState)
 	got := finality.ExportGenesis(ctx, *k)
 	require.NotNil(t, got)

@@ -4,16 +4,16 @@ import (
 	goMath "math"
 	"testing"
 
-	btckckpttypes "github.com/babylonlabs-io/babylon/v2/x/btccheckpoint/types"
+	btckckpttypes "github.com/babylonlabs-io/babylon/v4/x/btccheckpoint/types"
 	"github.com/btcsuite/btcd/wire"
 	govk "github.com/cosmos/cosmos-sdk/x/gov/keeper"
 	govv1types "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 
-	ftypes "github.com/babylonlabs-io/babylon/v2/x/finality/types"
+	ftypes "github.com/babylonlabs-io/babylon/v4/x/finality/types"
 
-	bstypes "github.com/babylonlabs-io/babylon/v2/x/btcstaking/types"
-	ckpttypes "github.com/babylonlabs-io/babylon/v2/x/checkpointing/types"
-	et "github.com/babylonlabs-io/babylon/v2/x/epoching/types"
+	bstypes "github.com/babylonlabs-io/babylon/v4/x/btcstaking/types"
+	ckpttypes "github.com/babylonlabs-io/babylon/v4/x/checkpointing/types"
+	et "github.com/babylonlabs-io/babylon/v4/x/epoching/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/stretchr/testify/require"
 )
@@ -46,6 +46,20 @@ func (d *BabylonAppDriver) GetActiveBTCDelegations(t *testing.T) []*bstypes.BTCD
 
 func (d *BabylonAppDriver) GetPendingBTCDelegations(t *testing.T) []*bstypes.BTCDelegationResponse {
 	return d.getDelegationWithStatus(t, bstypes.BTCDelegationStatus_PENDING)
+}
+
+func (d *BabylonAppDriver) GetUnbondedBTCDelegations(t *testing.T) []*bstypes.BTCDelegationResponse {
+	return d.getDelegationWithStatus(t, bstypes.BTCDelegationStatus_UNBONDED)
+}
+
+func (d *BabylonAppDriver) GetBTCDelegation(t *testing.T, stakingTxHex string) *bstypes.BTCDelegationResponse {
+	ctx, err := d.App.CreateQueryContext(0, false)
+	require.NoError(t, err)
+	res, err := d.App.BTCStakingKeeper.BTCDelegation(ctx, &bstypes.QueryBTCDelegationRequest{
+		StakingTxHashHex: stakingTxHex,
+	})
+	require.NoError(t, err)
+	return res.BtcDelegation
 }
 
 func (d *BabylonAppDriver) GetBTCStakingParams(t *testing.T) *bstypes.Params {

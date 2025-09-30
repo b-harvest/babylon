@@ -7,8 +7,8 @@ import (
 	"time"
 
 	sdkmath "cosmossdk.io/math"
-	"github.com/babylonlabs-io/babylon/v2/testutil/datagen"
-	bstypes "github.com/babylonlabs-io/babylon/v2/x/btcstaking/types"
+	"github.com/babylonlabs-io/babylon/v4/testutil/datagen"
+	bstypes "github.com/babylonlabs-io/babylon/v4/x/btcstaking/types"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/stretchr/testify/require"
 
@@ -51,6 +51,7 @@ func CreateFpFromNodeAddr(
 		return newFP
 	}
 
+	t.Error("failed to create finality provider")
 	return nil
 }
 

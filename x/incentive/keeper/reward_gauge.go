@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"cosmossdk.io/store/prefix"
-	"github.com/babylonlabs-io/babylon/v2/x/incentive/types"
+	"github.com/babylonlabs-io/babylon/v4/x/incentive/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -64,6 +64,16 @@ func (k Keeper) accumulateRewardGauge(ctx context.Context, sType types.Stakehold
 	rg.Add(reward)
 	// set back
 	k.SetRewardGauge(ctx, sType, addr, rg)
+}
+
+// AccumulateRewardGaugeForFP accumulates the given reward for a finality provider
+func (k Keeper) AccumulateRewardGaugeForFP(ctx context.Context, addr sdk.AccAddress, reward sdk.Coins) {
+	k.accumulateRewardGauge(ctx, types.FINALITY_PROVIDER, addr, reward)
+}
+
+// AccumulateRewardGaugeForCostaker accumulates the given reward for a costaker
+func (k Keeper) AccumulateRewardGaugeForCostaker(ctx context.Context, addr sdk.AccAddress, reward sdk.Coins) {
+	k.accumulateRewardGauge(ctx, types.COSTAKER, addr, reward)
 }
 
 func (k Keeper) SetRewardGauge(ctx context.Context, sType types.StakeholderType, addr sdk.AccAddress, rg *types.RewardGauge) {

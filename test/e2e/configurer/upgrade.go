@@ -16,12 +16,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/babylonlabs-io/babylon/v2/app"
-	appparams "github.com/babylonlabs-io/babylon/v2/app/params"
-	"github.com/babylonlabs-io/babylon/v2/test/e2e/configurer/chain"
-	"github.com/babylonlabs-io/babylon/v2/test/e2e/configurer/config"
-	"github.com/babylonlabs-io/babylon/v2/test/e2e/containers"
-	"github.com/babylonlabs-io/babylon/v2/test/e2e/initialization"
+	"github.com/babylonlabs-io/babylon/v4/app"
+	appparams "github.com/babylonlabs-io/babylon/v4/app/params"
+	"github.com/babylonlabs-io/babylon/v4/test/e2e/configurer/chain"
+	"github.com/babylonlabs-io/babylon/v4/test/e2e/configurer/config"
+	"github.com/babylonlabs-io/babylon/v4/test/e2e/containers"
+	"github.com/babylonlabs-io/babylon/v4/test/e2e/initialization"
 )
 
 type UpgradeSettings struct {
@@ -206,7 +206,15 @@ func (uc *UpgradeConfigurer) runProposalUpgrade() error {
 			return err
 		}
 
-		chainConfig.UpgradePropHeight = currentHeight + int64(chainConfig.VotingPeriod) + int64(config.PropSubmitBlocks) + int64(config.PropBufferBlocks)
+		upgradeMsg, err := uc.ParseGovPropFromFile()
+		if err != nil {
+			return err
+		}
+		if upgradeMsg.Plan.Height <= currentHeight {
+			chainConfig.UpgradePropHeight = currentHeight + int64(chainConfig.VotingPeriod) + int64(config.PropSubmitBlocks) + int64(config.PropBufferBlocks)
+		} else {
+			chainConfig.UpgradePropHeight = upgradeMsg.Plan.Height
+		}
 		err = uc.SetGovPropUpgradeHeight(chainConfig.UpgradePropHeight)
 		if err != nil {
 			return err

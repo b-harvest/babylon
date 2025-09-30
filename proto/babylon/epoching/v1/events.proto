@@ -3,7 +3,7 @@ package babylon.epoching.v1;
 
 import "gogoproto/gogo.proto";
 
-option go_package = "github.com/babylonlabs-io/babylon/v2/x/epoching/types";
+option go_package = "github.com/babylonlabs-io/babylon/v4/x/epoching/types";
 
 // EventBeginEpoch is the event emitted when an epoch has started
 message EventBeginEpoch { uint64 epoch_number = 1; }
@@ -97,4 +97,19 @@ message EventWrappedStakingUpdateParams {
   // min_commission_rate is the chain-wide minimum commission rate that a validator can charge their delegators
   string min_commission_rate = 6;
   uint64 epoch_boundary = 7;
+}
+// EventUnlockFundsFailed is the event emitted when unlocking funds fails.
+message EventUnlockFundsFailed {
+  // epoch_number is the epoch number when the unlock funds operation failed
+  uint64 epoch_number = 1;
+  // height is the block height when the message was originally submitted
+  uint64 height = 2;
+  // tx_id is the ID of the transaction that contains the message
+  bytes tx_id = 3;
+  // msg_id is the ID of the queued message
+  bytes msg_id = 4;
+  // error is the error message describing why the unlock funds operation failed
+  string error = 5;
+  // msg_type is the type of the message that failed to unlock funds
+  string msg_type = 6;
 }

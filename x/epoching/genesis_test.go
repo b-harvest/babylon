@@ -3,11 +3,11 @@ package epoching_test
 import (
 	"testing"
 
-	"github.com/babylonlabs-io/babylon/v2/x/epoching"
+	"github.com/babylonlabs-io/babylon/v4/x/epoching"
 	"github.com/stretchr/testify/require"
 
-	simapp "github.com/babylonlabs-io/babylon/v2/app"
-	"github.com/babylonlabs-io/babylon/v2/x/epoching/types"
+	simapp "github.com/babylonlabs-io/babylon/v4/app"
+	"github.com/babylonlabs-io/babylon/v4/x/epoching/types"
 )
 
 func TestExportGenesis(t *testing.T) {
@@ -29,6 +29,8 @@ func TestInitGenesis(t *testing.T) {
 	genesisState := types.GenesisState{
 		Params: types.Params{
 			EpochInterval: 100,
+			ExecuteGas:    types.DefaultExecuteGas,
+			MinAmount:     types.DefaultMinAmount,
 		},
 	}
 

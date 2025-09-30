@@ -5,12 +5,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	testkeeper "github.com/babylonlabs-io/babylon/v2/testutil/keeper"
-	"github.com/babylonlabs-io/babylon/v2/x/finality/types"
+	testkeeper "github.com/babylonlabs-io/babylon/v4/testutil/keeper"
+	"github.com/babylonlabs-io/babylon/v4/x/finality/types"
 )
 
 func TestParamsQuery(t *testing.T) {
-	keeper, ctx := testkeeper.FinalityKeeper(t, nil, nil, nil)
+	keeper, ctx := testkeeper.FinalityKeeper(t, nil, nil, nil, nil)
 	params := types.DefaultParams()
 	err := keeper.SetParams(ctx, params)
 	require.NoError(t, err)

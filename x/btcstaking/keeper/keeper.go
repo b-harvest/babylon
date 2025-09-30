@@ -12,7 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/babylonlabs-io/babylon/v2/x/btcstaking/types"
+	"github.com/babylonlabs-io/babylon/v4/x/btcstaking/types"
 )
 
 type (
@@ -29,6 +29,10 @@ type (
 		// LargestBtcReorg defines the BTC block height difference between
 		// the btc tip height and the rollback block height
 		LargestBtcReorg collections.Item[types.LargestBtcReOrg]
+		// fpBbnAddr defines an index of the finality provider babylon address already used
+		fpBbnAddr collections.KeySet[[]byte]
+		// finalityProvidersDeleted key: BIP340PubKey bytes
+		finalityProvidersDeleted collections.KeySet[[]byte]
 
 		btcNet *chaincfg.Params
 		// the address capable of executing a MsgUpdateParams or
@@ -70,6 +74,18 @@ func NewKeeper(
 			types.LargestBtcReorgInBlocks,
 			"largest_btc_reorg",
 			codec.CollValue[types.LargestBtcReOrg](cdc),
+		),
+		fpBbnAddr: collections.NewKeySet(
+			sb,
+			types.FpBbnAddrKey,
+			"fp_bbn_addr",
+			collections.BytesKey,
+		),
+		finalityProvidersDeleted: collections.NewKeySet(
+			sb,
+			types.FinalityProvidersDeleted,
+			"deleted_fps",
+			collections.BytesKey,
 		),
 		btcNet:    btcNet,
 		authority: authority,

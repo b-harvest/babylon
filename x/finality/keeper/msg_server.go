@@ -11,9 +11,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
-	bbn "github.com/babylonlabs-io/babylon/v2/types"
-	bstypes "github.com/babylonlabs-io/babylon/v2/x/btcstaking/types"
-	"github.com/babylonlabs-io/babylon/v2/x/finality/types"
+	bbn "github.com/babylonlabs-io/babylon/v4/types"
+	bstypes "github.com/babylonlabs-io/babylon/v4/x/btcstaking/types"
+	"github.com/babylonlabs-io/babylon/v4/x/finality/types"
 )
 
 type msgServer struct {
@@ -98,6 +98,10 @@ func (ms msgServer) AddFinalitySig(goCtx context.Context, req *types.MsgAddFinal
 	}
 
 	fpPK := req.FpBtcPk
+
+	if ms.BTCStakingKeeper.IsFinalityProviderDeleted(ctx, req.FpBtcPk) {
+		return nil, types.ErrFinalityProviderIsDeleted.Wrapf("fp_btc_pk_hex: %s", req.FpBtcPk.MarshalHex())
+	}
 
 	// ensure the finality provider exists
 	fp, err := ms.BTCStakingKeeper.GetFinalityProvider(ctx, req.FpBtcPk.MustMarshal())
@@ -268,6 +272,11 @@ func (ms msgServer) CommitPubRandList(goCtx context.Context, req *types.MsgCommi
 	}
 
 	ctx := sdk.UnwrapSDKContext(goCtx)
+	// check the commit start height is not too far into the future
+	if req.StartHeight >= uint64(ctx.BlockHeader().Height)+types.MaxPubRandCommitOffset {
+		return nil, types.ErrInvalidPubRand.Wrapf("start height %d is too far into the future. Current height is %d and max offset is %d", req.StartHeight, ctx.BlockHeader().Height, types.MaxPubRandCommitOffset)
+	}
+
 	activationHeight, errMod := ms.validateActivationHeight(ctx, req.StartHeight)
 	if errMod != nil {
 		return nil, types.ErrFinalityNotActivated.Wrapf(
@@ -312,7 +321,9 @@ func (ms msgServer) CommitPubRandList(goCtx context.Context, req *types.MsgCommi
 	// this finality provider has not commit any public randomness,
 	// commit the given public randomness list and return
 	if lastPrCommit == nil {
-		ms.SetPubRandCommit(ctx, req.FpBtcPk, prCommit)
+		if err := ms.SetPubRandCommit(ctx, req.FpBtcPk, prCommit); err != nil {
+			return nil, err
+		}
 		return &types.MsgCommitPubRandListResponse{}, nil
 	}
 
@@ -323,7 +334,9 @@ func (ms msgServer) CommitPubRandList(goCtx context.Context, req *types.MsgCommi
 	}
 
 	// all good, commit the given public randomness list
-	ms.SetPubRandCommit(ctx, req.FpBtcPk, prCommit)
+	if err := ms.SetPubRandCommit(ctx, req.FpBtcPk, prCommit); err != nil {
+		return nil, err
+	}
 	return &types.MsgCommitPubRandListResponse{}, nil
 }
 

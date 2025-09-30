@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/babylonlabs-io/babylon/v2/test/e2e/configurer/chain"
-	"github.com/babylonlabs-io/babylon/v2/test/e2e/containers"
-	"github.com/babylonlabs-io/babylon/v2/test/e2e/initialization"
+	"github.com/babylonlabs-io/babylon/v4/app"
+	"github.com/babylonlabs-io/babylon/v4/test/e2e/configurer/chain"
+	"github.com/babylonlabs-io/babylon/v4/test/e2e/containers"
+	"github.com/babylonlabs-io/babylon/v4/test/e2e/initialization"
 )
 
 type CurrentBranchConfigurer struct {
@@ -53,6 +54,8 @@ func (cb *CurrentBranchConfigurer) ConfigureChain(chainConfig *chain.Config) err
 		time.Duration(chainConfig.ExpeditedVotingPeriod*1000000000),
 		0,
 		chainConfig.BTCHeaders,
+		app.DefaultGasLimit,
+		nil,
 	)
 	if err != nil {
 		return err

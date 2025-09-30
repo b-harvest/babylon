@@ -4,15 +4,14 @@ import (
 	"context"
 
 	errorsmod "cosmossdk.io/errors"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	bbn "github.com/babylonlabs-io/babylon/v2/types"
-	"github.com/babylonlabs-io/babylon/v2/x/btcstaking/types"
+	bbn "github.com/babylonlabs-io/babylon/v4/types"
+	"github.com/babylonlabs-io/babylon/v4/x/btcstaking/types"
 )
 
 var _ types.QueryServer = Keeper{}
@@ -34,7 +33,8 @@ func (k Keeper) FinalityProviders(c context.Context, req *types.QueryFinalityPro
 			return err
 		}
 
-		resp := types.NewFinalityProviderResponse(&fp, currBlockHeight)
+		isDeleted := k.IsFinalityProviderDeleted(ctx, fp.BtcPk)
+		resp := types.NewFinalityProviderResponse(&fp, currBlockHeight, isDeleted)
 		fpResp = append(fpResp, resp)
 		return nil
 	})
@@ -73,7 +73,8 @@ func (k Keeper) FinalityProvider(c context.Context, req *types.QueryFinalityProv
 	}
 
 	currBlockHeight := uint64(ctx.BlockHeight())
-	fpResp := types.NewFinalityProviderResponse(fp, currBlockHeight)
+	isDeleted := k.IsFinalityProviderDeleted(ctx, fp.BtcPk)
+	fpResp := types.NewFinalityProviderResponse(fp, currBlockHeight, isDeleted)
 	return &types.QueryFinalityProviderResponse{FinalityProvider: fpResp}, nil
 }
 
@@ -95,7 +96,10 @@ func (k Keeper) BTCDelegations(ctx context.Context, req *types.QueryBTCDelegatio
 		params := k.GetParamsByVersion(ctx, btcDel.ParamsVersion)
 
 		// hit if the queried status is ANY or matches the BTC delegation status
-		status := btcDel.GetStatus(btcTipHeight, params.CovenantQuorum)
+		status, err := k.BtcDelStatus(ctx, &btcDel, params.CovenantQuorum, btcTipHeight)
+		if err != nil {
+			return true, err
+		}
 		if req.Status == types.BTCDelegationStatus_ANY || status == req.Status {
 			if accumulate {
 				resp := types.NewBTCDelegationResponse(&btcDel, status)
@@ -150,10 +154,15 @@ func (k Keeper) FinalityProviderDelegations(ctx context.Context, req *types.Quer
 		for i, btcDel := range curBTCDels.Dels {
 			params := k.GetParamsByVersion(sdkCtx, btcDel.ParamsVersion)
 
-			status := btcDel.GetStatus(
-				btcHeight,
+			status, err := k.BtcDelStatus(
+				ctx,
+				btcDel,
 				params.CovenantQuorum,
+				btcHeight,
 			)
+			if err != nil {
+				return err
+			}
 			btcDelsResp[i] = types.NewBTCDelegationResponse(btcDel, status)
 		}
 
@@ -175,27 +184,17 @@ func (k Keeper) BTCDelegation(ctx context.Context, req *types.QueryBTCDelegation
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
 
-	// decode staking tx hash
-	stakingTxHash, err := chainhash.NewHashFromStr(req.StakingTxHashHex)
+	delInfo, err := k.getBTCDelWithParams(ctx, req.StakingTxHashHex)
 	if err != nil {
 		return nil, err
 	}
 
-	// find BTC delegation
-	btcDel := k.getBTCDelegation(ctx, *stakingTxHash)
-	if btcDel == nil {
-		return nil, types.ErrBTCDelegationNotFound
+	status, _, err := k.BtcDelStatusWithTip(ctx, delInfo)
+	if err != nil {
+		return nil, err
 	}
-
-	params := k.GetParamsByVersion(ctx, btcDel.ParamsVersion)
-
-	status := btcDel.GetStatus(
-		k.btclcKeeper.GetTipInfo(ctx).Height,
-		params.CovenantQuorum,
-	)
-
 	return &types.QueryBTCDelegationResponse{
-		BtcDelegation: types.NewBTCDelegationResponse(btcDel, status),
+		BtcDelegation: types.NewBTCDelegationResponse(delInfo.Delegation, status),
 	}, nil
 }
 

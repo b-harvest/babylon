@@ -7,10 +7,10 @@ import (
 
 	"cosmossdk.io/store/prefix"
 	storetypes "cosmossdk.io/store/types"
-	appparams "github.com/babylonlabs-io/babylon/v2/app/params"
-	"github.com/babylonlabs-io/babylon/v2/testutil/datagen"
-	keepertest "github.com/babylonlabs-io/babylon/v2/testutil/keeper"
-	"github.com/babylonlabs-io/babylon/v2/x/incentive/types"
+	appparams "github.com/babylonlabs-io/babylon/v4/app/params"
+	"github.com/babylonlabs-io/babylon/v4/testutil/datagen"
+	keepertest "github.com/babylonlabs-io/babylon/v4/testutil/keeper"
+	"github.com/babylonlabs-io/babylon/v4/x/incentive/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
@@ -44,7 +44,7 @@ func (st StakeholderType) Bytes() []byte {
 func TestSetGetRewardGauge(t *testing.T) {
 	r := rand.New(rand.NewSource(time.Now().Unix()))
 	storeKey := storetypes.NewKVStoreKey(types.StoreKey)
-	k, ctx := keepertest.IncentiveKeeperWithStoreKey(t, storeKey, nil, nil, nil)
+	k, ctx := keepertest.IncentiveKeeperWithStoreKey(t, storeKey, nil, nil, nil, nil)
 	encCfg := appparams.DefaultEncodingConfig()
 
 	storeService := runtime.NewKVStoreService(storeKey)

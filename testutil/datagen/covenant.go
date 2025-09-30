@@ -1,10 +1,12 @@
 package datagen
 
 import (
-	"github.com/babylonlabs-io/babylon/v2/btcstaking"
-	asig "github.com/babylonlabs-io/babylon/v2/crypto/schnorr-adaptor-signature"
-	bbn "github.com/babylonlabs-io/babylon/v2/types"
-	bstypes "github.com/babylonlabs-io/babylon/v2/x/btcstaking/types"
+	"errors"
+
+	"github.com/babylonlabs-io/babylon/v4/btcstaking"
+	asig "github.com/babylonlabs-io/babylon/v4/crypto/schnorr-adaptor-signature"
+	bbn "github.com/babylonlabs-io/babylon/v4/types"
+	bstypes "github.com/babylonlabs-io/babylon/v4/x/btcstaking/types"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/btcsuite/btcd/wire"
@@ -55,5 +57,37 @@ func GenCovenantUnbondingSigs(covenantSKs []*btcec.PrivateKey, stakingTx *wire.M
 		}
 		sigs = append(sigs, sig)
 	}
+	return sigs, nil
+}
+
+func GenCovenantStakeExpSig(covenantSKs []*btcec.PrivateKey, del *bstypes.BTCDelegation, prevDelStakingInfo *btcstaking.StakingInfo) ([]*bbn.BIP340Signature, error) {
+	if del.StkExp == nil {
+		return nil, errors.New("cannot generate stake expansion sigs for non-stake-expansion delegation")
+	}
+	otherFundingTxOut, err := del.StkExp.FundingTxOut()
+	if err != nil {
+		return nil, err
+	}
+
+	prevDelUnbondPathSpendInfo, err := prevDelStakingInfo.UnbondingPathSpendInfo()
+	if err != nil {
+		return nil, err
+	}
+	sigs := []*bbn.BIP340Signature{}
+
+	for i := range covenantSKs {
+		sig, err := btcstaking.SignTxForFirstScriptSpendWithTwoInputsFromScript(
+			del.MustGetStakingTx(),
+			prevDelStakingInfo.StakingOutput,
+			otherFundingTxOut,
+			covenantSKs[i],
+			prevDelUnbondPathSpendInfo.GetPkScriptPath(),
+		)
+		if err != nil {
+			return nil, err
+		}
+		sigs = append(sigs, bbn.NewBIP340SignatureFromBTCSig(sig))
+	}
+
 	return sigs, nil
 }

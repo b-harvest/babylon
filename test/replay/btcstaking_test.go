@@ -6,13 +6,15 @@ import (
 	"time"
 
 	sdkmath "cosmossdk.io/math"
-	appparams "github.com/babylonlabs-io/babylon/v2/app/params"
-	"github.com/babylonlabs-io/babylon/v2/btcstaking"
-	btcstktypes "github.com/babylonlabs-io/babylon/v2/x/btcstaking/types"
+	appparams "github.com/babylonlabs-io/babylon/v4/app/params"
+	"github.com/babylonlabs-io/babylon/v4/btcstaking"
+	bbn "github.com/babylonlabs-io/babylon/v4/types"
+	btcstktypes "github.com/babylonlabs-io/babylon/v4/x/btcstaking/types"
+	abci "github.com/cometbft/cometbft/abci/types"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/v2/testutil/datagen"
+	"github.com/babylonlabs-io/babylon/v4/testutil/datagen"
 )
 
 // TestEpochFinalization checks whether we can finalize some epochs
@@ -36,7 +38,7 @@ func TestEpochFinalization(t *testing.T) {
 	epoch2 := driver.GetEpoch()
 	require.Equal(t, epoch2.EpochNumber, uint64(2))
 
-	driver.FinializeCkptForEpoch(epoch1.EpochNumber)
+	driver.FinalizeCkptForEpoch(epoch1.EpochNumber)
 }
 
 func FuzzCreatingAndActivatingDelegations(f *testing.F) {
@@ -139,7 +141,7 @@ func TestSendingDelegation(t *testing.T) {
 	driver.GenerateNewBlockAssertExecutionSuccess()
 
 	msg := s1.CreatePreApprovalDelegation(
-		fp1.BTCPublicKey(),
+		[]*bbn.BIP340PubKey{fp1.BTCPublicKey()},
 		1000,
 		100000000,
 	)
@@ -171,7 +173,7 @@ func TestSendingCovenantSignatures(t *testing.T) {
 	driver.GenerateNewBlock()
 
 	msg := s1.CreatePreApprovalDelegation(
-		fp1.BTCPublicKey(),
+		[]*bbn.BIP340PubKey{fp1.BTCPublicKey()},
 		1000,
 		100000000,
 	)
@@ -209,7 +211,7 @@ func TestActivatingDelegation(t *testing.T) {
 	driver.GenerateNewBlockAssertExecutionSuccess()
 
 	msg := s1.CreatePreApprovalDelegation(
-		fp1.BTCPublicKey(),
+		[]*bbn.BIP340PubKey{fp1.BTCPublicKey()},
 		1000,
 		100000000,
 	)
@@ -247,12 +249,12 @@ func TestVoting(t *testing.T) {
 	driver.GenerateNewBlockAssertExecutionSuccess()
 
 	// Randomness timestamped
-	currnetEpochNunber := driver.GetEpoch().EpochNumber
+	currEpochNumber := driver.GetEpoch().EpochNumber
 	driver.ProgressTillFirstBlockTheNextEpoch()
-	driver.FinializeCkptForEpoch(currnetEpochNunber)
+	driver.FinalizeCkptForEpoch(currEpochNumber)
 
 	msg := s1.CreatePreApprovalDelegation(
-		fp1.BTCPublicKey(),
+		[]*bbn.BIP340PubKey{fp1.BTCPublicKey()},
 		1000,
 		100000000,
 	)
@@ -281,7 +283,6 @@ func TestVoting(t *testing.T) {
 }
 
 func TestStakingAndFinalizingBlocks(t *testing.T) {
-	t.Parallel()
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	driverTempDir := t.TempDir()
 	replayerTempDir := t.TempDir()
@@ -310,7 +311,6 @@ func TestStakingAndFinalizingBlocks(t *testing.T) {
 }
 
 func TestStakingAndFinalizingMultipleBlocksAtOnce(t *testing.T) {
-	t.Parallel()
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	driver := NewBabylonAppDriverTmpDir(r, t)
 	driver.GenerateNewBlock()
@@ -358,7 +358,6 @@ func TestStakingAndFinalizingMultipleBlocksAtOnce(t *testing.T) {
 }
 
 func TestSlashingandFinalizingBlocks(t *testing.T) {
-	t.Parallel()
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	driver := NewBabylonAppDriverTmpDir(r, t)
 	driver.GenerateNewBlock()
@@ -411,7 +410,6 @@ func TestSlashingandFinalizingBlocks(t *testing.T) {
 }
 
 func TestActivatingDelegationOnSlashedFp(t *testing.T) {
-	t.Parallel()
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	driver := NewBabylonAppDriverTmpDir(r, t)
 	driver.GenerateNewBlock()
@@ -421,7 +419,7 @@ func TestActivatingDelegationOnSlashedFp(t *testing.T) {
 
 	for j := 0; j < 1; j++ {
 		scenario.stakers[0].CreatePreApprovalDelegation(
-			scenario.finalityProviders[0].BTCPublicKey(),
+			[]*bbn.BIP340PubKey{scenario.finalityProviders[0].BTCPublicKey()},
 			1000,
 			100000000,
 		)
@@ -560,10 +558,19 @@ func TestBadUnbondingFeeParams(t *testing.T) {
 		Params:    p,
 	}
 	msgToSend := d.NewGovProp(&prop)
-	d.SendTxWithMessagesSuccess(t, d.SenderInfo, defaultGasLimit, defaultFeeCoin, msgToSend)
+	d.SendTxWithMessagesSuccess(t, d.SenderInfo, DefaultGasLimit, defaultFeeCoin, msgToSend)
 
 	txResults := d.GenerateNewBlockAssertExecutionFailure()
 	require.Len(t, txResults, 1)
 	require.Equal(t, uint32(12), txResults[0].Code)
 	require.Contains(t, txResults[0].Log, btcstaking.ErrInvalidUnbondingFee.Error())
+}
+
+func attributeValueNonEmpty(event abci.Event, attributeKey string) bool {
+	for _, attribute := range event.Attributes {
+		if attribute.Key == attributeKey && len(attribute.Value) > 0 {
+			return true
+		}
+	}
+	return false
 }

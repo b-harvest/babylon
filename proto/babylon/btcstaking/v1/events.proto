@@ -5,7 +5,7 @@ import "gogoproto/gogo.proto";
 import "babylon/btcstaking/v1/btcstaking.proto";
 import "amino/amino.proto";
 
-option go_package = "github.com/babylonlabs-io/babylon/v2/x/btcstaking/types";
+option go_package = "github.com/babylonlabs-io/babylon/v4/x/btcstaking/types";
 
 // EventFinalityProviderCreated is the event emitted when a finality provider is created
 message EventFinalityProviderCreated {
@@ -73,19 +73,19 @@ message EventPowerDistUpdate {
   // is slashed
   // TODO: unify with existing slashing events
   message EventSlashedFinalityProvider {
-    bytes pk = 1 [ (gogoproto.customtype) = "github.com/babylonlabs-io/babylon/v2/types.BIP340PubKey" ];
+    bytes pk = 1 [ (gogoproto.customtype) = "github.com/babylonlabs-io/babylon/v4/types.BIP340PubKey" ];
   }
 
   // EventJailedFinalityProvider defines an event that a finality provider
   // is jailed after being detected sluggish
   message EventJailedFinalityProvider {
-    bytes pk = 1 [ (gogoproto.customtype) = "github.com/babylonlabs-io/babylon/v2/types.BIP340PubKey" ];
+    bytes pk = 1 [ (gogoproto.customtype) = "github.com/babylonlabs-io/babylon/v4/types.BIP340PubKey" ];
   }
 
   // EventUnjailedFinalityProvider defines an event that a jailed finality provider
   // is unjailed after the jailing period is passed
   message EventUnjailedFinalityProvider {
-    bytes pk = 1 [ (gogoproto.customtype) = "github.com/babylonlabs-io/babylon/v2/types.BIP340PubKey" ];
+    bytes pk = 1 [ (gogoproto.customtype) = "github.com/babylonlabs-io/babylon/v4/types.BIP340PubKey" ];
   }
 
   // ev is the event that affects voting power distribution
@@ -165,6 +165,9 @@ message EventBTCDelegationCreated {
   string new_state = 9 [(amino.dont_omitempty) = true];
   // staker Babylon address
   string staker_addr = 10 [(amino.dont_omitempty) = true];
+  // previous_staking_tx_hash_hex is the hex encoded of the hash of the staking tx
+  // that was used as input to the stake expansion, if empty it is NOT a stake expansion.
+  string previous_staking_tx_hash_hex = 11;
 }
 
 // EventCovenantSignatureReceived is the event emitted when a covenant committee
@@ -179,6 +182,10 @@ message EventCovenantSignatureReceived{
   // covenant_unbonding_signature_hex is the hex str of the BIP340 Schnorr
   // signature of the covenant committee on the unbonding tx
   string covenant_unbonding_signature_hex = 3 [(amino.dont_omitempty) = true];
+  // covenant_stake_expansion_signature_hex is the hex str of the BIP340 Schnorr
+  // signature of the covenant committee on the stake expansion tx
+  // if delegation was not stake expansion, this field will be an empty string
+  string covenant_stake_expansion_signature_hex = 4 [(amino.dont_omitempty) = true];
 }
 
 // EventCovenantQuorumReached is the event emitted quorum of covenant committee
@@ -217,6 +224,9 @@ message EventBTCDelgationUnbondedEarly {
   string start_height = 2 [(amino.dont_omitempty) = true];
   // new_state of the BTC delegation
   string new_state = 3 [(amino.dont_omitempty) = true];
+  // stake_expansion_tx_hash is the hash of the stake expansion transaction
+  // This field is only set if the delegation was expanded
+  string stake_expansion_tx_hash = 4;
 }
 
 // EventBTCDelegationExpired is the event emitted when a BTC delegation

@@ -13,6 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	cosmosed "github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -20,15 +21,15 @@ import (
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/v2/app"
-	appparams "github.com/babylonlabs-io/babylon/v2/app/params"
-	"github.com/babylonlabs-io/babylon/v2/crypto/bls12381"
-	"github.com/babylonlabs-io/babylon/v2/testutil/datagen"
-	bbn "github.com/babylonlabs-io/babylon/v2/types"
-	btcstakingtypes "github.com/babylonlabs-io/babylon/v2/x/btcstaking/types"
-	checkpointingtypes "github.com/babylonlabs-io/babylon/v2/x/checkpointing/types"
-	"github.com/babylonlabs-io/babylon/v2/x/epoching/keeper"
-	"github.com/babylonlabs-io/babylon/v2/x/epoching/types"
+	"github.com/babylonlabs-io/babylon/v4/app"
+	appparams "github.com/babylonlabs-io/babylon/v4/app/params"
+	"github.com/babylonlabs-io/babylon/v4/crypto/bls12381"
+	"github.com/babylonlabs-io/babylon/v4/testutil/datagen"
+	bbn "github.com/babylonlabs-io/babylon/v4/types"
+	btcstakingtypes "github.com/babylonlabs-io/babylon/v4/x/btcstaking/types"
+	checkpointingtypes "github.com/babylonlabs-io/babylon/v4/x/checkpointing/types"
+	"github.com/babylonlabs-io/babylon/v4/x/epoching/keeper"
+	"github.com/babylonlabs-io/babylon/v4/x/epoching/types"
 )
 
 // Helper is a structure which wraps the entire app and exposes functionalities for testing the epoching module
@@ -161,11 +162,12 @@ func (h *Helper) getExtendedVotesFromValSet(
 		// 1. set build vote extension
 		sig := bls12381.Sign(sk, signBytes)
 		ve := checkpointingtypes.VoteExtension{
-			Signer:    genesisKeys[i].ValidatorAddress,
-			BlockHash: &blockHash,
-			EpochNum:  epochNum,
-			Height:    height,
-			BlsSig:    &sig,
+			Signer:           genesisKeys[i].ValidatorAddress,
+			ValidatorAddress: genesisKeys[i].ValidatorAddress,
+			BlockHash:        &blockHash,
+			EpochNum:         epochNum,
+			Height:           height,
+			BlsSig:           &sig,
 		}
 		veBytes, err := ve.Marshal()
 		if err != nil {
@@ -322,4 +324,25 @@ func (h *Helper) AddFinalityProvider(fp *btcstakingtypes.FinalityProvider) {
 		Pop:   fp.Pop,
 	})
 	h.NoError(err)
+}
+
+// ValidateBasicTxMsgs replicates the SDK's baseapp logic for validating message basics testing purposes
+// This function is extracted from cosmos-sdk baseapp to test the exact same logic
+func ValidateBasicTxMsgs(msgs []sdk.Msg) error {
+	if len(msgs) == 0 {
+		return sdkerrors.ErrInvalidRequest.Wrap("must contain at least one message")
+	}
+
+	for _, msg := range msgs {
+		m, ok := msg.(sdk.HasValidateBasic)
+		if !ok {
+			continue
+		}
+
+		if err := m.ValidateBasic(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -1,6 +1,7 @@
 package replay
 
 import (
+	bbn "github.com/babylonlabs-io/babylon/v4/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 )
@@ -46,9 +47,9 @@ func (s *StandardScenario) InitScenario(
 		fp.CommitRandomness()
 	}
 
-	currnetEpochNunber := s.driver.GetEpoch().EpochNumber
+	currentEpochNumber := s.driver.GetEpoch().EpochNumber
 	s.driver.ProgressTillFirstBlockTheNextEpoch()
-	s.driver.FinializeCkptForEpoch(currnetEpochNunber)
+	s.driver.FinalizeCkptForEpoch(currentEpochNumber)
 
 	// commit all fps in one block
 	s.driver.GenerateNewBlockAssertExecutionSuccess()
@@ -56,7 +57,7 @@ func (s *StandardScenario) InitScenario(
 	for i, fp := range fps {
 		for j := 0; j < delegationsPerFp; j++ {
 			stakers[i].CreatePreApprovalDelegation(
-				fp.BTCPublicKey(),
+				[]*bbn.BIP340PubKey{fp.BTCPublicKey()},
 				defaultStakingTime,
 				100000000,
 			)
@@ -90,7 +91,7 @@ func (s *StandardScenario) InitScenario(
 
 func (s *StandardScenario) CreateActiveBtcDel(fp *FinalityProvider, staker *Staker, totalSat int64) {
 	staker.CreatePreApprovalDelegation(
-		fp.BTCPublicKey(),
+		[]*bbn.BIP340PubKey{fp.BTCPublicKey()},
 		defaultStakingTime,
 		totalSat,
 	)

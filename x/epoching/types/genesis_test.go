@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/babylonlabs-io/babylon/v2/app"
-	"github.com/babylonlabs-io/babylon/v2/testutil/datagen"
-	"github.com/babylonlabs-io/babylon/v2/testutil/nullify"
-	"github.com/babylonlabs-io/babylon/v2/x/epoching"
-	"github.com/babylonlabs-io/babylon/v2/x/epoching/types"
+	"github.com/babylonlabs-io/babylon/v4/app"
+	"github.com/babylonlabs-io/babylon/v4/testutil/datagen"
+	"github.com/babylonlabs-io/babylon/v4/testutil/nullify"
+	"github.com/babylonlabs-io/babylon/v4/x/epoching"
+	"github.com/babylonlabs-io/babylon/v4/x/epoching/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -56,6 +56,8 @@ func TestGenesisState_Validate(t *testing.T) {
 			genState: &types.GenesisState{
 				Params: types.Params{
 					EpochInterval: 100,
+					ExecuteGas:    types.DefaultExecuteGas,
+					MinAmount:     types.DefaultMinAmount,
 				},
 			},
 			valid: true,

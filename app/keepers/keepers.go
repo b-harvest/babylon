@@ -1,12 +1,8 @@
 package keepers
 
 import (
-	"context"
-	"fmt"
 	"path/filepath"
-	"strings"
 
-	"cosmossdk.io/errors"
 	"cosmossdk.io/log"
 	storetypes "cosmossdk.io/store/types"
 	circuitkeeper "cosmossdk.io/x/circuit/keeper"
@@ -17,35 +13,10 @@ import (
 	feegrantkeeper "cosmossdk.io/x/feegrant/keeper"
 	upgradekeeper "cosmossdk.io/x/upgrade/keeper"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
-	"github.com/CosmWasm/wasmd/x/wasm"
-	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
-	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
-	appparams "github.com/babylonlabs-io/babylon/v2/app/params"
-	bbn "github.com/babylonlabs-io/babylon/v2/types"
-	owasm "github.com/babylonlabs-io/babylon/v2/wasmbinding"
-	btccheckpointkeeper "github.com/babylonlabs-io/babylon/v2/x/btccheckpoint/keeper"
-	btccheckpointtypes "github.com/babylonlabs-io/babylon/v2/x/btccheckpoint/types"
-	btclightclientkeeper "github.com/babylonlabs-io/babylon/v2/x/btclightclient/keeper"
-	btclightclienttypes "github.com/babylonlabs-io/babylon/v2/x/btclightclient/types"
-	btcstakingkeeper "github.com/babylonlabs-io/babylon/v2/x/btcstaking/keeper"
-	btcstakingtypes "github.com/babylonlabs-io/babylon/v2/x/btcstaking/types"
-	checkpointingkeeper "github.com/babylonlabs-io/babylon/v2/x/checkpointing/keeper"
-	checkpointingtypes "github.com/babylonlabs-io/babylon/v2/x/checkpointing/types"
-	epochingkeeper "github.com/babylonlabs-io/babylon/v2/x/epoching/keeper"
-	epochingtypes "github.com/babylonlabs-io/babylon/v2/x/epoching/types"
-	finalitykeeper "github.com/babylonlabs-io/babylon/v2/x/finality/keeper"
-	finalitytypes "github.com/babylonlabs-io/babylon/v2/x/finality/types"
-	incentivekeeper "github.com/babylonlabs-io/babylon/v2/x/incentive/keeper"
-	incentivetypes "github.com/babylonlabs-io/babylon/v2/x/incentive/types"
-	mintkeeper "github.com/babylonlabs-io/babylon/v2/x/mint/keeper"
-	minttypes "github.com/babylonlabs-io/babylon/v2/x/mint/types"
-	monitorkeeper "github.com/babylonlabs-io/babylon/v2/x/monitor/keeper"
-	monitortypes "github.com/babylonlabs-io/babylon/v2/x/monitor/types"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	authcodec "github.com/cosmos/cosmos-sdk/x/auth/codec"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -67,34 +38,66 @@ import (
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	pfmrouter "github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v8/packetforward"
-	pfmrouterkeeper "github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v8/packetforward/keeper"
-	pfmroutertypes "github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v8/packetforward/types"
-	ratelimiter "github.com/cosmos/ibc-apps/modules/rate-limiting/v8"
-	ratelimitkeeper "github.com/cosmos/ibc-apps/modules/rate-limiting/v8/keeper"
-	ratelimittypes "github.com/cosmos/ibc-apps/modules/rate-limiting/v8/types"
-	ibccallbacks "github.com/cosmos/ibc-go/modules/apps/callbacks"
-	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
-	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
-	ibcwasmkeeper "github.com/cosmos/ibc-go/modules/light-clients/08-wasm/keeper"
-	ibcwasmtypes "github.com/cosmos/ibc-go/modules/light-clients/08-wasm/types"
-	icacontroller "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/controller"
-	icacontrollerkeeper "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/controller/keeper"
-	icacontrollertypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/controller/types"
-	icahost "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/host"
-	icahostkeeper "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/host/keeper"
-	icahosttypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/host/types"
-	"github.com/cosmos/ibc-go/v8/modules/apps/transfer"
-	ibctransferkeeper "github.com/cosmos/ibc-go/v8/modules/apps/transfer/keeper"
-	ibctransfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
-	porttypes "github.com/cosmos/ibc-go/v8/modules/core/05-port/types" // ibc module puts types under `ibchost` rather than `ibctypes`
-	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
-	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
+
+	"github.com/CosmWasm/wasmd/x/wasm"
+	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
+	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
+
+	appparams "github.com/babylonlabs-io/babylon/v4/app/params"
+	bbn "github.com/babylonlabs-io/babylon/v4/types"
+	owasm "github.com/babylonlabs-io/babylon/v4/wasmbinding"
+	btccheckpointkeeper "github.com/babylonlabs-io/babylon/v4/x/btccheckpoint/keeper"
+	btccheckpointtypes "github.com/babylonlabs-io/babylon/v4/x/btccheckpoint/types"
+	btclightclientkeeper "github.com/babylonlabs-io/babylon/v4/x/btclightclient/keeper"
+	btclightclienttypes "github.com/babylonlabs-io/babylon/v4/x/btclightclient/types"
+	btcstakingkeeper "github.com/babylonlabs-io/babylon/v4/x/btcstaking/keeper"
+	btcstakingtypes "github.com/babylonlabs-io/babylon/v4/x/btcstaking/types"
+	checkpointingkeeper "github.com/babylonlabs-io/babylon/v4/x/checkpointing/keeper"
+	checkpointingtypes "github.com/babylonlabs-io/babylon/v4/x/checkpointing/types"
+	costakingkeeper "github.com/babylonlabs-io/babylon/v4/x/costaking/keeper"
+	costktypes "github.com/babylonlabs-io/babylon/v4/x/costaking/types"
+	epochingkeeper "github.com/babylonlabs-io/babylon/v4/x/epoching/keeper"
+	epochingtypes "github.com/babylonlabs-io/babylon/v4/x/epoching/types"
+	finalitykeeper "github.com/babylonlabs-io/babylon/v4/x/finality/keeper"
+	finalitytypes "github.com/babylonlabs-io/babylon/v4/x/finality/types"
+	incentivekeeper "github.com/babylonlabs-io/babylon/v4/x/incentive/keeper"
+	incentivetypes "github.com/babylonlabs-io/babylon/v4/x/incentive/types"
+	mintkeeper "github.com/babylonlabs-io/babylon/v4/x/mint/keeper"
+	minttypes "github.com/babylonlabs-io/babylon/v4/x/mint/types"
+	monitorkeeper "github.com/babylonlabs-io/babylon/v4/x/monitor/keeper"
+	monitortypes "github.com/babylonlabs-io/babylon/v4/x/monitor/types"
+
+	ibcwasmkeeper "github.com/cosmos/ibc-go/modules/light-clients/08-wasm/v10/keeper"
+	ibcwasmtypes "github.com/cosmos/ibc-go/modules/light-clients/08-wasm/v10/types"
+	icacontroller "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/controller"
+	icacontrollerkeeper "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/controller/keeper"
+	icacontrollertypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/controller/types"
+	icahost "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/host"
+	icahostkeeper "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/host/keeper"
+	icahosttypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/host/types"
+	ibccallbacks "github.com/cosmos/ibc-go/v10/modules/apps/callbacks"
+	ibccallbacksv2 "github.com/cosmos/ibc-go/v10/modules/apps/callbacks/v2"
+	"github.com/cosmos/ibc-go/v10/modules/apps/transfer"
+	ibctransferkeeper "github.com/cosmos/ibc-go/v10/modules/apps/transfer/keeper"
+	ibctransfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"
+	transferv2 "github.com/cosmos/ibc-go/v10/modules/apps/transfer/v2"
+	porttypes "github.com/cosmos/ibc-go/v10/modules/core/05-port/types" // ibc module puts types under `ibchost` rather than `ibctypes`
+	ibcapi "github.com/cosmos/ibc-go/v10/modules/core/api"
+	ibcexported "github.com/cosmos/ibc-go/v10/modules/core/exported"
+	ibckeeper "github.com/cosmos/ibc-go/v10/modules/core/keeper"
+
+	pfmrouter "github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v10/packetforward"
+	pfmrouterkeeper "github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v10/packetforward/keeper"
+	pfmroutertypes "github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v10/packetforward/types"
+	ratelimiter "github.com/cosmos/ibc-apps/modules/rate-limiting/v10"
+	ratelimitkeeper "github.com/cosmos/ibc-apps/modules/rate-limiting/v10/keeper"
+	ratelimittypes "github.com/cosmos/ibc-apps/modules/rate-limiting/v10/types"
+	ratelimitv2 "github.com/cosmos/ibc-apps/modules/rate-limiting/v10/v2"
+
+	tokenfactorybindings "github.com/strangelove-ventures/tokenfactory/x/tokenfactory/bindings"
 	tokenfactorykeeper "github.com/strangelove-ventures/tokenfactory/x/tokenfactory/keeper"
 	tokenfactorytypes "github.com/strangelove-ventures/tokenfactory/x/tokenfactory/types"
 )
-
-var errBankRestriction = fmt.Errorf("can only receive bond denom %s", appparams.DefaultBondDenom)
 
 // Enable all default present capabilities.
 var tokenFactoryCapabilities = []string{
@@ -127,14 +130,13 @@ type AppKeepers struct {
 	// keepers
 	AccountKeeper         authkeeper.AccountKeeper
 	BankKeeper            bankkeeper.Keeper
-	CapabilityKeeper      *capabilitykeeper.Keeper
 	StakingKeeper         *stakingkeeper.Keeper
 	SlashingKeeper        slashingkeeper.Keeper
 	MintKeeper            mintkeeper.Keeper
 	DistrKeeper           distrkeeper.Keeper
 	GovKeeper             govkeeper.Keeper
 	UpgradeKeeper         *upgradekeeper.Keeper
-	ParamsKeeper          paramskeeper.Keeper
+	ParamsKeeper          paramskeeper.Keeper //nolint:staticcheck
 	AuthzKeeper           authzkeeper.Keeper
 	EvidenceKeeper        evidencekeeper.Keeper
 	FeeGrantKeeper        feegrantkeeper.Keeper
@@ -150,6 +152,7 @@ type AppKeepers struct {
 	BtcCheckpointKeeper  btccheckpointkeeper.Keeper
 	CheckpointingKeeper  checkpointingkeeper.Keeper
 	MonitorKeeper        monitorkeeper.Keeper
+	CostakingKeeper      costakingkeeper.Keeper
 
 	// IBC-related modules
 	IBCKeeper           *ibckeeper.Keeper           // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
@@ -169,12 +172,6 @@ type AppKeepers struct {
 
 	// tokenomics-related modules
 	IncentiveKeeper incentivekeeper.Keeper
-
-	// make scoped keepers public for test purposes
-	ScopedIBCKeeper           capabilitykeeper.ScopedKeeper
-	ScopedTransferKeeper      capabilitykeeper.ScopedKeeper
-	ScopedZoneConciergeKeeper capabilitykeeper.ScopedKeeper
-	ScopedWasmKeeper          capabilitykeeper.ScopedKeeper
 
 	// keys to access the substores
 	keys    map[string]*storetypes.KVStoreKey
@@ -210,8 +207,10 @@ func (ak *AppKeepers) InitKeepers(
 		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
 		minttypes.StoreKey, distrtypes.StoreKey, slashingtypes.StoreKey,
 		govtypes.StoreKey, paramstypes.StoreKey, consensusparamtypes.StoreKey, upgradetypes.StoreKey, feegrant.StoreKey,
-		evidencetypes.StoreKey, circuittypes.StoreKey, capabilitytypes.StoreKey,
+		evidencetypes.StoreKey, circuittypes.StoreKey,
 		authzkeeper.StoreKey,
+		// Token Factory
+		tokenfactorytypes.StoreKey,
 		// Babylon modules
 		epochingtypes.StoreKey,
 		btclightclienttypes.StoreKey,
@@ -233,17 +232,12 @@ func (ak *AppKeepers) InitKeepers(
 		wasmtypes.StoreKey,
 		// tokenomics-related modules
 		incentivetypes.StoreKey,
-		tokenfactorytypes.StoreKey,
+		costktypes.StoreKey,
 	)
 	ak.keys = keys
 
 	// set transient store keys
 	ak.tkeys = storetypes.NewTransientStoreKeys(paramstypes.TStoreKey, btccheckpointtypes.TStoreKey)
-
-	// set memory store keys
-	// NOTE: The testingkey is just mounted for testing purposes. Actual applications should
-	// not include this key.
-	ak.memKeys = storetypes.NewMemoryStoreKeys(capabilitytypes.MemStoreKey, "testingkey")
 
 	accountKeeper := authkeeper.NewAccountKeeper(
 		appCodec,
@@ -263,7 +257,6 @@ func (ak *AppKeepers) InitKeepers(
 		appparams.AccGov.String(),
 		logger,
 	)
-	bankKeeper.AppendSendRestriction(bankSendRestrictionOnlyBondDenomToDistribution)
 
 	stakingKeeper := stakingkeeper.NewKeeper(
 		appCodec,
@@ -312,23 +305,6 @@ func (ak *AppKeepers) InitKeepers(
 	)
 	bApp.SetParamStore(ak.ConsensusParamsKeeper.ParamsStore)
 
-	ak.CapabilityKeeper = capabilitykeeper.NewKeeper(
-		appCodec,
-		keys[capabilitytypes.StoreKey],
-		ak.memKeys[capabilitytypes.MemStoreKey],
-	)
-
-	// grant capabilities for the ibc and ibc-transfer modules
-	scopedIBCKeeper := ak.CapabilityKeeper.ScopeToModule(ibcexported.ModuleName)
-	scopedTransferKeeper := ak.CapabilityKeeper.ScopeToModule(ibctransfertypes.ModuleName)
-	scopedWasmKeeper := ak.CapabilityKeeper.ScopeToModule(wasmtypes.ModuleName)
-	scopedICAHostKeeper := ak.CapabilityKeeper.ScopeToModule(icahosttypes.SubModuleName)
-	scopedICAControllerKeeper := ak.CapabilityKeeper.ScopeToModule(icacontrollertypes.SubModuleName)
-
-	// Applications that wish to enforce statically created ScopedKeepers should call `Seal` after creating
-	// their scoped modules in `NewApp` with `ScopeToModule`
-	ak.CapabilityKeeper.Seal()
-
 	// add keepers
 	ak.AccountKeeper = accountKeeper
 
@@ -364,13 +340,24 @@ func (ak *AppKeepers) InitKeepers(
 		appparams.AccGov.String(),
 	)
 
-	// set up incentive keeper
 	ak.IncentiveKeeper = incentivekeeper.NewKeeper(
 		appCodec,
 		runtime.NewKVStoreService(keys[incentivetypes.StoreKey]),
 		ak.BankKeeper,
 		ak.AccountKeeper,
 		&epochingKeeper,
+		appparams.AccGov.String(),
+		authtypes.FeeCollectorName,
+	)
+
+	ak.CostakingKeeper = costakingkeeper.NewKeeper(
+		appCodec,
+		runtime.NewKVStoreService(keys[costktypes.StoreKey]),
+		ak.BankKeeper,
+		ak.AccountKeeper,
+		ak.IncentiveKeeper,
+		ak.StakingKeeper,
+		ak.DistrKeeper,
 		appparams.AccGov.String(),
 		authtypes.FeeCollectorName,
 	)
@@ -391,7 +378,12 @@ func (ak *AppKeepers) InitKeepers(
 	// register the staking hooks
 	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
 	ak.StakingKeeper.SetHooks(
-		stakingtypes.NewMultiStakingHooks(ak.DistrKeeper.Hooks(), ak.SlashingKeeper.Hooks(), epochingKeeper.Hooks()),
+		stakingtypes.NewMultiStakingHooks(
+			ak.DistrKeeper.Hooks(),
+			ak.SlashingKeeper.Hooks(),
+			epochingKeeper.Hooks(),
+			ak.CostakingKeeper.HookStaking(),
+		),
 	)
 
 	// set the governance module account as the authority for conducting upgrades
@@ -413,16 +405,50 @@ func (ak *AppKeepers) InitKeepers(
 
 	ak.IBCKeeper = ibckeeper.NewKeeper(
 		appCodec,
-		keys[ibcexported.StoreKey],
+		runtime.NewKVStoreService(keys[ibcexported.StoreKey]),
 		ak.GetSubspace(ibcexported.ModuleName),
-		ak.StakingKeeper,
 		ak.UpgradeKeeper,
-		scopedIBCKeeper,
 		// From 8.0.0 the IBC keeper requires an authority for the messages
 		// `MsgIBCSoftwareUpgrade` and `MsgRecoverClient`
 		// https://github.com/cosmos/ibc-go/releases/tag/v8.0.0
 		// Gov is the proper authority for those types of messages
 		appparams.AccGov.String(),
+	)
+
+	// Create the TokenFactory Keeper
+	ak.TokenFactoryKeeper = tokenfactorykeeper.NewKeeper(
+		appCodec,
+		ak.keys[tokenfactorytypes.StoreKey],
+		maccPerms,
+		ak.AccountKeeper,
+		ak.BankKeeper,
+		ak.DistrKeeper,
+		tokenFactoryCapabilities,
+		tokenfactorykeeper.DefaultIsSudoAdminFunc,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
+
+	wasmOpts = append(owasm.RegisterCustomPlugins(&ak.TokenFactoryKeeper, &epochingKeeper, &ak.CheckpointingKeeper, &ak.BTCLightClientKeeper), wasmOpts...)
+	wasmOpts = append(tokenfactorybindings.RegisterCustomPlugins(ak.BankKeeper, &ak.TokenFactoryKeeper), wasmOpts...)
+
+	ak.WasmKeeper = wasmkeeper.NewKeeper(
+		appCodec,
+		runtime.NewKVStoreService(keys[wasmtypes.StoreKey]),
+		ak.AccountKeeper,
+		ak.BankKeeper,
+		ak.StakingKeeper,
+		distrkeeper.NewQuerier(ak.DistrKeeper),
+		ak.IBCKeeper.ChannelKeeper,
+		ak.IBCKeeper.ChannelKeeper,
+		ak.TransferKeeper,
+		bApp.MsgServiceRouter(),
+		bApp.GRPCQueryRouter(),
+		homePath,
+		wasmConfig,
+		wasmtypes.VMConfig{},
+		WasmCapabilities(),
+		appparams.AccGov.String(),
+		wasmOpts...,
 	)
 
 	// register the proposal types
@@ -483,26 +509,26 @@ func (ak *AppKeepers) InitKeepers(
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 		ak.BankKeeper,
 		ak.IBCKeeper.ChannelKeeper,
+		ak.IBCKeeper.ClientKeeper,
 		ak.IBCKeeper.ChannelKeeper, // ICS4Wrapper
 	)
 
 	// Create Transfer Keepers
 	ak.TransferKeeper = ibctransferkeeper.NewKeeper(
 		appCodec,
-		keys[ibctransfertypes.StoreKey],
+		runtime.NewKVStoreService(keys[ibctransfertypes.StoreKey]),
 		ak.GetSubspace(ibctransfertypes.ModuleName),
 		ak.IBCKeeper.ChannelKeeper,
 		ak.IBCKeeper.ChannelKeeper,
-		ak.IBCKeeper.PortKeeper,
+		bApp.MsgServiceRouter(),
 		ak.AccountKeeper,
 		ak.BankKeeper,
-		scopedTransferKeeper,
 		appparams.AccGov.String(),
 	)
 
 	ak.PFMRouterKeeper = pfmrouterkeeper.NewKeeper(
 		appCodec,
-		ak.keys[pfmroutertypes.StoreKey],
+		runtime.NewKVStoreService(ak.keys[pfmroutertypes.StoreKey]),
 		ak.TransferKeeper,
 		ak.IBCKeeper.ChannelKeeper,
 		ak.BankKeeper,
@@ -552,6 +578,19 @@ func (ak *AppKeepers) InitKeepers(
 		appparams.AccGov.String(),
 	)
 
+	ak.FinalityKeeper.SetHooks(
+		finalitytypes.NewMultiFinalityHooks(
+			ak.IncentiveKeeper.Hooks(),
+			ak.CostakingKeeper.HookFinality(),
+		),
+	)
+
+	ak.IncentiveKeeper.SetHooks(
+		incentivetypes.NewMultiIncentiveHooks(
+			ak.CostakingKeeper.HookIncentives(),
+		),
+	)
+
 	// create evidence keeper with router
 	evidenceKeeper := evidencekeeper.NewKeeper(
 		appCodec,
@@ -563,43 +602,6 @@ func (ak *AppKeepers) InitKeepers(
 	)
 	// If evidence needs to be handled for the app, set routes in router here and seal
 	ak.EvidenceKeeper = *evidenceKeeper
-
-	// Create the TokenFactory Keeper
-	ak.TokenFactoryKeeper = tokenfactorykeeper.NewKeeper(
-		appCodec,
-		ak.keys[tokenfactorytypes.StoreKey],
-		maccPerms,
-		ak.AccountKeeper,
-		ak.BankKeeper,
-		ak.DistrKeeper,
-		tokenFactoryCapabilities,
-		tokenfactorykeeper.DefaultIsSudoAdminFunc,
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
-	)
-
-	wasmOpts = append(owasm.RegisterCustomPlugins(&ak.TokenFactoryKeeper, &epochingKeeper, &ak.CheckpointingKeeper, &ak.BTCLightClientKeeper), wasmOpts...)
-
-	ak.WasmKeeper = wasmkeeper.NewKeeper(
-		appCodec,
-		runtime.NewKVStoreService(keys[wasmtypes.StoreKey]),
-		ak.AccountKeeper,
-		ak.BankKeeper,
-		ak.StakingKeeper,
-		distrkeeper.NewQuerier(ak.DistrKeeper),
-		ak.IBCKeeper.ChannelKeeper,
-		ak.IBCKeeper.ChannelKeeper,
-		ak.IBCKeeper.PortKeeper,
-		scopedWasmKeeper,
-		ak.TransferKeeper,
-		bApp.MsgServiceRouter(),
-		bApp.GRPCQueryRouter(),
-		homePath,
-		wasmConfig,
-		wasmtypes.VMConfig{},
-		WasmCapabilities(),
-		appparams.AccGov.String(),
-		wasmOpts...,
-	)
 
 	ibcWasmConfig :=
 		ibcwasmtypes.WasmConfig{
@@ -621,26 +623,22 @@ func (ak *AppKeepers) InitKeepers(
 	ak.GovKeeper.SetLegacyRouter(govRouter)
 
 	icaHostKeeper := icahostkeeper.NewKeeper(
-		appCodec, ak.keys[icahosttypes.StoreKey],
+		appCodec, runtime.NewKVStoreService(keys[icahosttypes.StoreKey]),
 		ak.GetSubspace(icahosttypes.SubModuleName),
 		ak.IBCKeeper.ChannelKeeper,
 		ak.IBCKeeper.ChannelKeeper,
-		ak.IBCKeeper.PortKeeper,
 		ak.AccountKeeper,
-		scopedICAHostKeeper,
 		bApp.MsgServiceRouter(),
+		bApp.GRPCQueryRouter(),
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
-	icaHostKeeper.WithQueryRouter(bApp.GRPCQueryRouter())
 	ak.ICAHostKeeper = &icaHostKeeper
 
 	icaControllerKeeper := icacontrollerkeeper.NewKeeper(
-		appCodec, ak.keys[icacontrollertypes.StoreKey],
+		appCodec, runtime.NewKVStoreService(ak.keys[icacontrollertypes.StoreKey]),
 		ak.GetSubspace(icacontrollertypes.SubModuleName),
 		ak.IBCKeeper.ChannelKeeper,
 		ak.IBCKeeper.ChannelKeeper,
-		ak.IBCKeeper.PortKeeper,
-		scopedICAControllerKeeper,
 		bApp.MsgServiceRouter(),
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
@@ -677,13 +675,25 @@ func (ak *AppKeepers) InitKeepers(
 	transferStack = ratelimiter.NewIBCMiddleware(ak.RatelimitKeeper, transferStack)
 	ak.TransferKeeper.WithICS4Wrapper(cbStack)
 
+	// Transfer Stack for IBC V2
+	var transferStackV2 ibcapi.IBCModule
+	transferStackV2 = transferv2.NewIBCModule(ak.TransferKeeper)
+	transferStackV2 = ibccallbacksv2.NewIBCMiddleware(
+		transferStackV2,
+		ak.IBCKeeper.ChannelKeeperV2,
+		wasmStackIBCHandler,
+		ak.IBCKeeper.ChannelKeeperV2,
+		appparams.MaxIBCCallbackGas,
+	)
+	transferStackV2 = ratelimitv2.NewIBCMiddleware(ak.RatelimitKeeper, transferStackV2)
+
 	// Create Interchain Accounts Controller Stack
 	// SendPacket Path:
 	// SendPacket -> Callbacks -> ICA Controller -> IBC core
 	// RecvPacket Path:
 	// RecvPacket -> IBC core -> ICA Controller -> Callbacks
 	var icaControllerStack porttypes.IBCModule
-	icaControllerStack = icacontroller.NewIBCMiddleware(icaControllerStack, *ak.ICAControllerKeeper)
+	icaControllerStack = icacontroller.NewIBCMiddleware(*ak.ICAControllerKeeper)
 	icaControllerStack = ibccallbacks.NewIBCMiddleware(icaControllerStack, ak.IBCKeeper.ChannelKeeper,
 		wasmStackIBCHandler, appparams.MaxIBCCallbackGas)
 	icaICS4Wrapper := icaControllerStack.(porttypes.ICS4Wrapper)
@@ -705,11 +715,18 @@ func (ak *AppKeepers) InitKeepers(
 	// Setting Router will finalize all routes by sealing router
 	// No more routes can be added
 	ak.IBCKeeper.SetRouter(ibcRouter)
+
+	// Create IBCv2 Router & seal
+	ibcv2Router := ibcapi.NewRouter().
+		AddRoute(ibctransfertypes.PortID, transferStackV2)
+	ak.IBCKeeper.SetRouterV2(ibcv2Router)
 }
 
 // initParamsKeeper init params keeper and its subspaces
+//
+//nolint:staticcheck
 func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino, key, tkey storetypes.StoreKey) paramskeeper.Keeper {
-	paramsKeeper := paramskeeper.NewKeeper(appCodec, legacyAmino, key, tkey)
+	paramsKeeper := paramskeeper.NewKeeper(appCodec, legacyAmino, key, tkey) //nolint:staticcheck
 
 	// TODO: Only modules which did not migrate yet to new way of hanldling params
 	// are the IBC-related modules. Once they are migrated, we can remove this and
@@ -720,24 +737,4 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(ratelimittypes.ModuleName)
 
 	return paramsKeeper
-}
-
-// bankSendRestrictionOnlyBondDenomToDistribution restricts that only the default bond denom should be allowed to send to distribution and fee collector mod accs.
-func bankSendRestrictionOnlyBondDenomToDistribution(ctx context.Context, fromAddr, toAddr sdk.AccAddress, amt sdk.Coins) (newToAddr sdk.AccAddress, err error) {
-	if toAddr.Equals(appparams.AccDistribution) || toAddr.Equals(appparams.AccFeeCollector) {
-		denoms := amt.Denoms()
-		switch len(denoms) {
-		case 0:
-			return toAddr, nil
-		case 1:
-			denom := denoms[0]
-			if !strings.EqualFold(denom, appparams.DefaultBondDenom) {
-				return nil, errors.Wrapf(errBankRestriction, "address %s", toAddr)
-			}
-		default: // more than one length
-			return nil, errors.Wrapf(errBankRestriction, "address %s", toAddr)
-		}
-	}
-
-	return toAddr, nil
 }

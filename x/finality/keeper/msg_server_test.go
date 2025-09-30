@@ -15,21 +15,21 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
-	appparams "github.com/babylonlabs-io/babylon/v2/app/params"
-	"github.com/babylonlabs-io/babylon/v2/testutil/datagen"
-	testutil "github.com/babylonlabs-io/babylon/v2/testutil/incentives-helper"
-	keepertest "github.com/babylonlabs-io/babylon/v2/testutil/keeper"
-	bbn "github.com/babylonlabs-io/babylon/v2/types"
-	btclctypes "github.com/babylonlabs-io/babylon/v2/x/btclightclient/types"
-	bstypes "github.com/babylonlabs-io/babylon/v2/x/btcstaking/types"
-	epochingtypes "github.com/babylonlabs-io/babylon/v2/x/epoching/types"
-	"github.com/babylonlabs-io/babylon/v2/x/finality/keeper"
-	"github.com/babylonlabs-io/babylon/v2/x/finality/types"
-	ictvtypes "github.com/babylonlabs-io/babylon/v2/x/incentive/types"
+	appparams "github.com/babylonlabs-io/babylon/v4/app/params"
+	"github.com/babylonlabs-io/babylon/v4/testutil/datagen"
+	testutil "github.com/babylonlabs-io/babylon/v4/testutil/incentives-helper"
+	keepertest "github.com/babylonlabs-io/babylon/v4/testutil/keeper"
+	bbn "github.com/babylonlabs-io/babylon/v4/types"
+	btclctypes "github.com/babylonlabs-io/babylon/v4/x/btclightclient/types"
+	bstypes "github.com/babylonlabs-io/babylon/v4/x/btcstaking/types"
+	epochingtypes "github.com/babylonlabs-io/babylon/v4/x/epoching/types"
+	"github.com/babylonlabs-io/babylon/v4/x/finality/keeper"
+	"github.com/babylonlabs-io/babylon/v4/x/finality/types"
+	ictvtypes "github.com/babylonlabs-io/babylon/v4/x/incentive/types"
 )
 
 func setupMsgServer(t testing.TB) (*keeper.Keeper, types.MsgServer, context.Context) {
-	fKeeper, ctx := keepertest.FinalityKeeper(t, nil, nil, nil)
+	fKeeper, ctx := keepertest.FinalityKeeper(t, nil, nil, nil, nil)
 	return fKeeper, keeper.NewMsgServerImpl(*fKeeper), ctx
 }
 
@@ -49,7 +49,7 @@ func FuzzCommitPubRandList(f *testing.F) {
 
 		bsKeeper := types.NewMockBTCStakingKeeper(ctrl)
 		cKeeper := types.NewMockCheckpointingKeeper(ctrl)
-		fKeeper, ctx := keepertest.FinalityKeeper(t, bsKeeper, nil, cKeeper)
+		fKeeper, ctx := keepertest.FinalityKeeper(t, bsKeeper, nil, cKeeper, nil)
 		ms := keeper.NewMsgServerImpl(*fKeeper)
 		committedEpochNum := datagen.GenRandomEpochNum(r)
 		cKeeper.EXPECT().GetEpoch(gomock.Any()).Return(&epochingtypes.Epoch{EpochNumber: committedEpochNum}).AnyTimes()
@@ -116,6 +116,14 @@ func FuzzCommitPubRandList(f *testing.F) {
 		_, err = ms.CommitPubRandList(ctx, msg)
 		require.Error(t, err)
 		require.ErrorContains(t, err, types.ErrOverflowInBlockHeight.Error())
+
+		// Case 7: commit a pubrand list with startHeight too far into the future
+		startHeight = 500_000
+		_, msg, err = datagen.GenRandomMsgCommitPubRandList(r, btcSK, startHeight, numPubRand)
+		require.NoError(t, err)
+		_, err = ms.CommitPubRandList(ctx, msg)
+		require.Error(t, err)
+		require.ErrorContains(t, err, fmt.Sprintf("start height %d is too far into the future", startHeight))
 	})
 }
 
@@ -129,10 +137,11 @@ func FuzzAddFinalitySig(f *testing.F) {
 
 		bsKeeper := types.NewMockBTCStakingKeeper(ctrl)
 		bsKeeper.EXPECT().UpdateFinalityProvider(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		bsKeeper.EXPECT().IsFinalityProviderDeleted(gomock.Any(), gomock.Any()).Return(false).Times(7)
 		cKeeper := types.NewMockCheckpointingKeeper(ctrl)
 		iKeeper := types.NewMockIncentiveKeeper(ctrl)
 		iKeeper.EXPECT().IndexRefundableMsg(gomock.Any(), gomock.Any()).AnyTimes()
-		fKeeper, ctx := keepertest.FinalityKeeper(t, bsKeeper, iKeeper, cKeeper)
+		fKeeper, ctx := keepertest.FinalityKeeper(t, bsKeeper, iKeeper, cKeeper, nil)
 		ms := keeper.NewMsgServerImpl(*fKeeper)
 
 		// create and register a random finality provider
@@ -268,6 +277,15 @@ func FuzzAddFinalitySig(f *testing.F) {
 		cKeeper.EXPECT().GetEpochByHeight(gomock.Any(), msg.BlockHeight).Return(uint64(1)).Times(1)
 		_, err = ms.AddFinalitySig(ctx, msg)
 		require.ErrorIs(t, err, types.ErrSigHeightOutdated)
+
+		// Case 9: add finality vote from a deleted finality provider
+		msg.BlockHeight++
+		ctx = ctx.WithHeaderInfo(header.Info{Height: int64(msg.BlockHeight)})
+		fKeeper.IndexBlock(ctx)
+		cKeeper.EXPECT().GetEpochByHeight(gomock.Any(), msg.BlockHeight).Return(uint64(1)).Times(1)
+		bsKeeper.EXPECT().IsFinalityProviderDeleted(gomock.Any(), msg.FpBtcPk).Return(true).Times(1)
+		_, err = ms.AddFinalitySig(ctx, msg)
+		require.EqualError(t, err, types.ErrFinalityProviderIsDeleted.Wrapf("fp_btc_pk_hex: %s", msg.FpBtcPk.MarshalHex()).Error())
 	})
 }
 
@@ -281,7 +299,7 @@ func FuzzUnjailFinalityProvider(f *testing.F) {
 
 		bsKeeper := types.NewMockBTCStakingKeeper(ctrl)
 		cKeeper := types.NewMockCheckpointingKeeper(ctrl)
-		fKeeper, ctx := keepertest.FinalityKeeper(t, bsKeeper, nil, cKeeper)
+		fKeeper, ctx := keepertest.FinalityKeeper(t, bsKeeper, nil, cKeeper, nil)
 		ms := keeper.NewMsgServerImpl(*fKeeper)
 
 		// create and register a random finality provider
@@ -342,10 +360,11 @@ func TestVoteForConflictingHashShouldRetrieveEvidenceAndSlash(t *testing.T) {
 	defer ctrl.Finish()
 	bsKeeper := types.NewMockBTCStakingKeeper(ctrl)
 	bsKeeper.EXPECT().UpdateFinalityProvider(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	bsKeeper.EXPECT().IsFinalityProviderDeleted(gomock.Any(), gomock.Any()).Return(false).AnyTimes()
 	cKeeper := types.NewMockCheckpointingKeeper(ctrl)
 	iKeeper := types.NewMockIncentiveKeeper(ctrl)
 	iKeeper.EXPECT().IndexRefundableMsg(gomock.Any(), gomock.Any()).AnyTimes()
-	fKeeper, ctx := keepertest.FinalityKeeper(t, bsKeeper, iKeeper, cKeeper)
+	fKeeper, ctx := keepertest.FinalityKeeper(t, bsKeeper, iKeeper, cKeeper, nil)
 	ms := keeper.NewMsgServerImpl(*fKeeper)
 	// create and register a random finality provider
 	btcSK, btcPK, err := datagen.GenRandomBTCKeyPair(r)
@@ -418,7 +437,7 @@ func TestDoNotPanicOnNilProof(t *testing.T) {
 	cKeeper := types.NewMockCheckpointingKeeper(ctrl)
 	iKeeper := types.NewMockIncentiveKeeper(ctrl)
 	iKeeper.EXPECT().IndexRefundableMsg(gomock.Any(), gomock.Any()).AnyTimes()
-	fKeeper, ctx := keepertest.FinalityKeeper(t, bsKeeper, iKeeper, cKeeper)
+	fKeeper, ctx := keepertest.FinalityKeeper(t, bsKeeper, iKeeper, cKeeper, nil)
 	ms := keeper.NewMsgServerImpl(*fKeeper)
 
 	// create and register a random finality provider
@@ -478,7 +497,7 @@ func TestDoNotPanicOnNilProof(t *testing.T) {
 
 func TestVerifyActivationHeight(t *testing.T) {
 	r := rand.New(rand.NewSource(time.Now().Unix()))
-	fKeeper, ctx := keepertest.FinalityKeeper(t, nil, nil, nil)
+	fKeeper, ctx := keepertest.FinalityKeeper(t, nil, nil, nil, nil)
 	ms := keeper.NewMsgServerImpl(*fKeeper)
 	err := fKeeper.SetParams(ctx, types.DefaultParams())
 	require.NoError(t, err)
@@ -609,6 +628,7 @@ func TestBtcDelegationRewardsEarlyUnbondingAndExpire(t *testing.T) {
 	btccKForFinality.EXPECT().GetLastFinalizedEpoch(gomock.Any()).Return(epochNumber).AnyTimes()
 
 	h := testutil.NewIncentiveHelper(t, btclcKeeper, btccKForBtcStaking, btccKForFinality)
+
 	// set all parameters
 	covenantSKs, _ := h.GenAndApplyParams(r)
 	h.SetFinalityActivationHeight(0)

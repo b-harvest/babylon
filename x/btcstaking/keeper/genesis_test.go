@@ -6,39 +6,16 @@ import (
 	"math/rand"
 	"testing"
 
-	"cosmossdk.io/log"
-	"cosmossdk.io/store"
-	storemetrics "cosmossdk.io/store/metrics"
 	"github.com/btcsuite/btcd/btcec/v2"
-	dbm "github.com/cosmos/cosmos-db"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
-	v1 "github.com/babylonlabs-io/babylon/v2/app/upgrades/v1"
-	testnetdata "github.com/babylonlabs-io/babylon/v2/app/upgrades/v1/testnet"
-	"github.com/babylonlabs-io/babylon/v2/testutil/datagen"
-	"github.com/babylonlabs-io/babylon/v2/testutil/helper"
-	testutilk "github.com/babylonlabs-io/babylon/v2/testutil/keeper"
-	btclightclientt "github.com/babylonlabs-io/babylon/v2/x/btclightclient/types"
-	"github.com/babylonlabs-io/babylon/v2/x/btcstaking/types"
+	"github.com/babylonlabs-io/babylon/v4/testutil/datagen"
+	"github.com/babylonlabs-io/babylon/v4/testutil/helper"
+	bbn "github.com/babylonlabs-io/babylon/v4/types"
+	btclightclientt "github.com/babylonlabs-io/babylon/v4/x/btclightclient/types"
+	"github.com/babylonlabs-io/babylon/v4/x/btcstaking/types"
 )
-
-func TestInitGenesisWithSetParams(t *testing.T) {
-	db := dbm.NewMemDB()
-	stateStore := store.NewCommitMultiStore(db, log.NewTestLogger(t), storemetrics.NewNoOpMetrics())
-	k, ctx := testutilk.BTCStakingKeeperWithStore(t, db, stateStore, nil, nil, nil, nil)
-
-	err := k.InitGenesis(ctx, *types.DefaultGenesis())
-	require.NoError(t, err)
-
-	params, err := v1.LoadBtcStakingParamsFromData(testnetdata.BtcStakingParamsStr)
-	require.NoError(t, err)
-
-	for _, p := range params {
-		err = k.SetParams(ctx, p)
-		require.NoError(t, err)
-	}
-}
 
 func TestInitGenesis(t *testing.T) {
 	ctx, h, gs := setupTest(t)
@@ -73,16 +50,19 @@ func TestExportGenesis(t *testing.T) {
 	fps, delegations, chainsHeight := gs.FinalityProviders, gs.BtcDelegations, gs.BlockHeightChains
 
 	for i := range gs.FinalityProviders {
+		fp := fps[i]
 		// set finality
-		h.AddFinalityProvider(fps[i])
+		h.AddFinalityProvider(fp)
+		err := k.SetFpBbnAddr(ctx, fp.Address())
+		require.NoError(t, err)
 		// on creating the finality providers, the commission UpdateTime
 		// is set to be the current block time. To check equality afterwards,
 		// we update the randomly generated fps (with UpdateTime = 0) to have UpdateTime = block time
-		fps[i].CommissionInfo.UpdateTime = ctx.BlockHeader().Time
+		fp.CommissionInfo.UpdateTime = ctx.BlockHeader().Time
 
 		// make delegations per fp so event indexes are the same as the
 		// generated data in the setupTest func
-		delegateToFP(h, delegations, fps[i].BtcPk.MustToBTCPK())
+		delegateToFP(h, delegations, fp.BtcPk.MustToBTCPK())
 	}
 
 	// index blocks heights
@@ -99,6 +79,13 @@ func TestExportGenesis(t *testing.T) {
 		h.Ctx = ctx
 
 		k.IndexBTCHeight(ctx)
+	}
+
+	for _, deletedFpBtcPkHex := range gs.DeletedFpsBtcPkHex {
+		fpBtcPk, err := bbn.NewBIP340PubKeyFromHex(deletedFpBtcPkHex)
+		require.NoError(t, err)
+		err = k.SoftDeleteFinalityProvider(ctx, fpBtcPk)
+		require.NoError(t, err)
 	}
 
 	exportedGs, err := k.ExportGenesis(ctx)
@@ -131,6 +118,7 @@ func setupTest(t *testing.T) (sdk.Context, *helper.Helper, *types.GenesisState) 
 	events := make([]*types.EventIndex, 0)
 	btcDelegators := make([]*types.BTCDelegator, 0)
 	allowedStkTxHashes := make([]string, 0)
+	fpsBbnAddr := make([]string, 0)
 
 	blkHeight := uint64(r.Int63n(1000)) + math.MaxUint16
 	totalDelegations := 0
@@ -140,14 +128,17 @@ func setupTest(t *testing.T) (sdk.Context, *helper.Helper, *types.GenesisState) 
 	for i := range fps {
 		stakingValue := r.Int31n(200000) + 10000
 		numDelegations := r.Int31n(10)
+		fp := fps[i]
 		delegations := createNDelegationsForFinalityProvider(
 			r,
 			t,
-			fps[i].BtcPk.MustToBTCPK(),
+			fp.BtcPk.MustToBTCPK(),
 			int64(stakingValue),
 			int(numDelegations),
 			params.CovenantQuorum,
 		)
+
+		fpsBbnAddr = append(fpsBbnAddr, fp.Addr)
 
 		for _, del := range delegations {
 			totalDelegations++
@@ -157,6 +148,8 @@ func setupTest(t *testing.T) (sdk.Context, *helper.Helper, *types.GenesisState) 
 			// BTC delegators idx
 			stakingTxHash, err := del.GetStakingTxHash()
 			h.NoError(err)
+
+			allowedStkTxHashes = append(allowedStkTxHashes, hex.EncodeToString(stakingTxHash[:]))
 
 			idxDelegatorStk := types.NewBTCDelegatorDelegationIndex()
 			err = idxDelegatorStk.Add(stakingTxHash)
@@ -169,8 +162,6 @@ func setupTest(t *testing.T) (sdk.Context, *helper.Helper, *types.GenesisState) 
 				FpBtcPk:  fps[i].BtcPk,
 				DelBtcPk: del.BtcPk,
 			})
-
-			allowedStkTxHashes = append(allowedStkTxHashes, hex.EncodeToString(stakingTxHash[:]))
 
 			// record event that the BTC delegation will become expired (unbonded) at EndHeight-w
 			unbondedEvent := types.NewEventPowerDistUpdateWithBTCDel(&types.EventBTCDelegationStateUpdate{
@@ -186,7 +177,6 @@ func setupTest(t *testing.T) (sdk.Context, *helper.Helper, *types.GenesisState) 
 				Event:          unbondedEvent,
 			})
 		}
-
 		// chain heights
 		btcHeight := uint32(blkHeight + 100)
 		chainsHeight = append(chainsHeight, &types.BlockHeightBbnToBtc{
@@ -195,6 +185,12 @@ func setupTest(t *testing.T) (sdk.Context, *helper.Helper, *types.GenesisState) 
 		})
 
 		blkHeight++ // each fp increase blk height to modify data in state.
+	}
+
+	deletedNumFps := datagen.RandomInRange(r, 1, len(fps))
+	deletedFps := make([]string, deletedNumFps)
+	for i := 0; i < deletedNumFps; i++ {
+		deletedFps[i] = fps[i].BtcPk.MarshalHex()
 	}
 
 	gs := &types.GenesisState{
@@ -206,6 +202,8 @@ func setupTest(t *testing.T) (sdk.Context, *helper.Helper, *types.GenesisState) 
 		Events:                 events,
 		AllowedStakingTxHashes: allowedStkTxHashes,
 		LargestBtcReorg:        latestBtcReOrg,
+		FpBbnAddr:              fpsBbnAddr,
+		DeletedFpsBtcPkHex:     deletedFps,
 	}
 	require.NoError(t, gs.Validate())
 	return ctx, h, gs

@@ -16,13 +16,13 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/babylonlabs-io/babylon/v2/testutil/datagen"
-	testkeeper "github.com/babylonlabs-io/babylon/v2/testutil/keeper"
-	bbn "github.com/babylonlabs-io/babylon/v2/types"
-	btcctypes "github.com/babylonlabs-io/babylon/v2/x/btccheckpoint/types"
-	btclctypes "github.com/babylonlabs-io/babylon/v2/x/btclightclient/types"
-	btcstakingkeeper "github.com/babylonlabs-io/babylon/v2/x/btcstaking/keeper"
-	"github.com/babylonlabs-io/babylon/v2/x/btcstaking/types"
+	"github.com/babylonlabs-io/babylon/v4/testutil/datagen"
+	testkeeper "github.com/babylonlabs-io/babylon/v4/testutil/keeper"
+	bbn "github.com/babylonlabs-io/babylon/v4/types"
+	btcctypes "github.com/babylonlabs-io/babylon/v4/x/btccheckpoint/types"
+	btclctypes "github.com/babylonlabs-io/babylon/v4/x/btclightclient/types"
+	btcstakingkeeper "github.com/babylonlabs-io/babylon/v4/x/btcstaking/keeper"
+	"github.com/babylonlabs-io/babylon/v4/x/btcstaking/types"
 )
 
 var net = &chaincfg.SimNetParams
@@ -44,6 +44,10 @@ func FuzzFinalityProviders(f *testing.F) {
 
 			AddFinalityProvider(t, ctx, *keeper, fp)
 			fpsMap[fp.BtcPk.MarshalHex()] = fp
+			if i%2 == 0 {
+				err = keeper.SoftDeleteFinalityProvider(ctx, fp.BtcPk)
+				require.NoError(t, err)
+			}
 		}
 		numOfFpsInStore := len(fpsMap)
 
@@ -80,6 +84,9 @@ func FuzzFinalityProviders(f *testing.F) {
 					t.Fatalf("rpc returned a finality provider that was not created")
 				}
 				fpsFound[fp.BtcPk.MarshalHex()] = true
+
+				isDeleted := keeper.IsFinalityProviderDeleted(ctx, fp.BtcPk)
+				require.Equal(t, isDeleted, fp.SoftDeleted)
 			}
 
 			// Construct the next page request

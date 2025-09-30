@@ -16,20 +16,24 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
-	appparams "github.com/babylonlabs-io/babylon/v2/app/params"
-	"github.com/babylonlabs-io/babylon/v2/x/finality/keeper"
-	"github.com/babylonlabs-io/babylon/v2/x/finality/types"
+	appparams "github.com/babylonlabs-io/babylon/v4/app/params"
+	"github.com/babylonlabs-io/babylon/v4/x/finality/keeper"
+	"github.com/babylonlabs-io/babylon/v4/x/finality/types"
 )
 
-func FinalityKeeperWithStore(
+func FinalityKeeperWithStoreKey(
 	t testing.TB,
 	db dbm.DB,
 	stateStore store.CommitMultiStore,
+	storeKey *storetypes.KVStoreKey,
 	bsKeeper types.BTCStakingKeeper,
 	iKeeper types.IncentiveKeeper,
 	ckptKeeper types.CheckpointingKeeper,
+	hooks types.FinalityHooks,
 ) (*keeper.Keeper, sdk.Context) {
-	storeKey := storetypes.NewKVStoreKey(types.StoreKey)
+	if storeKey == nil {
+		storeKey = storetypes.NewKVStoreKey(types.StoreKey)
+	}
 
 	stateStore.MountStoreWithDB(storeKey, storetypes.StoreTypeIAVL, db)
 	require.NoError(t, stateStore.LoadLatestVersion())
@@ -46,10 +50,24 @@ func FinalityKeeperWithStore(
 		appparams.AccGov.String(),
 	)
 
+	k.SetHooks(types.NewMultiFinalityHooks(hooks))
+
 	ctx := sdk.NewContext(stateStore, cmtproto.Header{}, false, log.NewNopLogger())
 	ctx = ctx.WithHeaderInfo(header.Info{})
 
 	return &k, ctx
+}
+
+func FinalityKeeperWithStore(
+	t testing.TB,
+	db dbm.DB,
+	stateStore store.CommitMultiStore,
+	bsKeeper types.BTCStakingKeeper,
+	iKeeper types.IncentiveKeeper,
+	ckptKeeper types.CheckpointingKeeper,
+	hooks types.FinalityHooks,
+) (*keeper.Keeper, sdk.Context) {
+	return FinalityKeeperWithStoreKey(t, db, stateStore, nil, bsKeeper, iKeeper, ckptKeeper, hooks)
 }
 
 func FinalityKeeper(
@@ -57,11 +75,12 @@ func FinalityKeeper(
 	bsKeeper types.BTCStakingKeeper,
 	iKeeper types.IncentiveKeeper,
 	ckptKeeper types.CheckpointingKeeper,
+	hooks types.FinalityHooks,
 ) (*keeper.Keeper, sdk.Context) {
 	db := dbm.NewMemDB()
 	stateStore := store.NewCommitMultiStore(db, log.NewTestLogger(t), storemetrics.NewNoOpMetrics())
 
-	k, ctx := FinalityKeeperWithStore(t, db, stateStore, bsKeeper, iKeeper, ckptKeeper)
+	k, ctx := FinalityKeeperWithStore(t, db, stateStore, bsKeeper, iKeeper, ckptKeeper, hooks)
 
 	// Initialize params
 	dParams := types.DefaultParams()

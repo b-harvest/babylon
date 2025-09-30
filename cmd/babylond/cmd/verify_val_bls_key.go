@@ -11,10 +11,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/cobra"
 
-	"github.com/babylonlabs-io/babylon/v2/app"
-	appsigner "github.com/babylonlabs-io/babylon/v2/app/signer"
-	checkpointingtypes "github.com/babylonlabs-io/babylon/v2/x/checkpointing/types"
-	epochingtypes "github.com/babylonlabs-io/babylon/v2/x/epoching/types"
+	"github.com/babylonlabs-io/babylon/v4/app"
+	appsigner "github.com/babylonlabs-io/babylon/v4/app/signer"
+	checkpointingtypes "github.com/babylonlabs-io/babylon/v4/x/checkpointing/types"
+	epochingtypes "github.com/babylonlabs-io/babylon/v4/x/epoching/types"
 )
 
 func VerifyValidatorBlsKey() *cobra.Command {
@@ -108,7 +108,7 @@ $ babylond verify-validator-bls-key babylonvaloper1... --no-bls-password
 			resp, err := checkpointingQueryClient.BlsPublicKeyList(
 				cmd.Context(),
 				&checkpointingtypes.QueryBlsPublicKeyListRequest{
-					EpochNum: epochResponse.GetCurrentEpoch(),
+					EpochNum: epochResponse.CurrentEpoch,
 				},
 			)
 			if err != nil {
