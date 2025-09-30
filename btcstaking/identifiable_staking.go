@@ -353,7 +353,7 @@ func BuildStakingOutputsForMsig(
 		return nil, err
 	}
 
-	opReturnData, err := NewV0OpReturnDataFromParsedMsig(tag, stakerKeys, fpKey, stakingTime)
+	opReturnData, err := NewV0OpReturnDataFromParsed(tag, stakerKeys[0], fpKey, stakingTime)
 
 	if err != nil {
 		return nil, err
